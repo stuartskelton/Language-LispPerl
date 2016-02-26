@@ -1,13 +1,14 @@
 package CljPerl::Evaler;
 
-#  use strict;
-  use warnings;
-  use CljPerl::Reader;
-  use CljPerl::Var;
-  use CljPerl::Printer;
-  use File::Spec;
-  use File::Basename;
-  use Coro;
+use strict;
+use warnings;
+
+use CljPerl::Reader;
+use CljPerl::Var;
+use CljPerl::Printer;
+use File::Spec;
+use File::Basename;
+use Coro;
 
   our $VERSION = '0.10';
 
@@ -416,9 +417,9 @@ package CljPerl::Evaler;
       } elsif($ftype eq "perlfunction") {
         my $meta = undef;
         $meta = $self->_eval($ast->second()) if defined $ast->second() and $ast->second()->type() eq "meta";
-        my $perl_func = $f->value();
+        my $perl_func = \&{ $f->value() };
         my @args = $ast->slice((defined $meta ? 2 : 1) .. $size-1);
-        return $self->perlfunc_call($perl_func, $meta, \@args);
+        return $self->perlfunc_call($perl_func, $meta, \@args , $ast );
       } elsif($ftype eq "macro") {
         my $scope = $f->{context};
         my $fn = $fvalue;
@@ -750,7 +751,7 @@ package CljPerl::Evaler;
       return $self->read($f->value());
     # (list 'a 'b 'c)
     } elsif($fn eq "list") {
-      return $emtpy_list if $size == 1;
+      return $empty_list if $size == 1;
       my @vs = $ast->slice(1 .. $size-1);
       my $r = CljPerl::Seq->new("list");
       foreach my $i (@vs) {
@@ -1105,10 +1106,10 @@ package CljPerl::Evaler;
         $ns = "CljPerl" if ! defined $ns or $ns eq "";
         my $meta = undef;
         $meta = $self->_eval($ast->third()) if defined $ast->third() and $ast->third()->type() eq "meta";
-        $perl_func = $ns . "::" . $perl_func;
+        $perl_func = \&{ $ns . "::" . $perl_func };
         my @rest = $ast->slice((defined $meta ? 3 : 2) .. $size-1);
         unshift @rest, CljPerl::Atom->new("string", $ns) if $blessed eq "->";
-        return $self->perlfunc_call($perl_func, $meta, \@rest);
+        return $self->perlfunc_call($perl_func, $meta, \@rest , $ast );
       }
     # (perl->clj o)
     } elsif($fn eq "perl->clj") {
@@ -1187,6 +1188,8 @@ package CljPerl::Evaler;
     my $perl_func = shift;
     my $meta = shift;
     my $rargs = shift;
+    my $ast = shift;
+
     my $ret_type = "scalar";
     my @fargtypes = ();
     if(defined $meta) {
