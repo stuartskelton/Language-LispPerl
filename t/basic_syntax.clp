@@ -240,11 +240,3 @@
 (println "c")
 (println (coro-current))
 (coro-resume c0)
-
-(def a0 (actor
-  (println "aaa")
-  (actor-send (actor-receive) "exit")
-  (println "bbb")))
-
-(actor-send a0 (actor-self))
-(println (actor-receive "exit"))
