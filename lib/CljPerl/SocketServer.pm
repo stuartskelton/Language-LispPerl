@@ -3,7 +3,6 @@ package CljPerl::SocketServer;
 use strict;
 use warnings;
 
-
 our $VERSION = '0.10';
 
 use AnyEvent::Socket;
@@ -18,75 +17,74 @@ sub socket_server {
     my $sscb = shift;
 
     return AnyEvent::Socket::tcp_server $host, $port, sub {
-        my ($clsock, $host, $port) = @_;
-    
+        my ( $clsock, $host, $port ) = @_;
+
         my $hs    = Protocol::WebSocket::Handshake::Server->new;
         my $frame = Protocol::WebSocket::Frame->new;
-    
-        my $hdl = AnyEvent::Handle->new(fh => $clsock);
+
+        my $hdl = AnyEvent::Handle->new( fh => $clsock );
         $hdl->on_error(
             sub {
-              my ($hdl, $fatal, $message) = @_;
-              #print "$message\n";
-              $hdl->destroy;
+                my ( $hdl, $fatal, $message ) = @_;
+
+                #print "$message\n";
+                $hdl->destroy;
             }
         );
-        $hdl->on_eof(
-            sub {}
-        );
-        $hdl->{__on_read__} =
-        sub {
+        $hdl->on_eof( sub { } );
+        $hdl->{__on_read__} = sub {
             my $cb = shift;
             sub {
-                my $hdl = shift;
+                my $hdl   = shift;
                 my $chunk = $hdl->{rbuf};
                 $hdl->{rbuf} = undef;
-                if (!$hs->is_done) {
+                if ( !$hs->is_done ) {
                     $hs->parse($chunk);
-                    if ($hs->is_done) {
-                        $hdl->push_write($hs->to_string);
+                    if ( $hs->is_done ) {
+                        $hdl->push_write( $hs->to_string );
                         return;
                     }
                 }
                 $frame->append($chunk);
-                while (my $message = $frame->next) {
+                while ( my $message = $frame->next ) {
                     &{$cb}($message);
-                #    $hdl->push_write($frame->new($nmessage)->to_bytes);
-                };
-            }
+
+                    #    $hdl->push_write($frame->new($nmessage)->to_bytes);
+                }
+              }
         };
-        $hdl->{__send__} =
-        sub {
-           my $msg = shift;
-           $hdl->push_write($frame->new($msg)->to_bytes);
-           #$hdl->push_write($hs->to_string);
+        $hdl->{__send__} = sub {
+            my $msg = shift;
+            $hdl->push_write( $frame->new($msg)->to_bytes );
+
+            #$hdl->push_write($hs->to_string);
         };
         &{$sscb}($hdl);
     };
-};
+}
 
 sub socket_send {
-  my $socket = shift;
-  my $msg = shift;
-  if(defined $socket and ref($socket) ne "AnyEvent::Handle::destroyed"){
-    $socket->{__send__}->($msg);
-  };
-};
+    my $socket = shift;
+    my $msg    = shift;
+    if ( defined $socket and ref($socket) ne "AnyEvent::Handle::destroyed" ) {
+        $socket->{__send__}->($msg);
+    }
+}
 
 sub socket_on_read {
-  my $socket = shift;
-  my $cb = shift;
-  if(defined $socket and ref($socket) ne "AnyEvent::Handle::destroyed") {
-    $socket->on_read($socket->{__on_read__}->($cb));
-  };
-};
+    my $socket = shift;
+    my $cb     = shift;
+    if ( defined $socket and ref($socket) ne "AnyEvent::Handle::destroyed" ) {
+        $socket->on_read( $socket->{__on_read__}->($cb) );
+    }
+}
 
 sub socket_destroy {
-  my $socket = shift;
-  if(defined $socket and ref($socket) ne "AnyEvent::Handle::destroyed") {
-    $socket->destroy;
-  };
-};
+    my $socket = shift;
+    if ( defined $socket and ref($socket) ne "AnyEvent::Handle::destroyed" ) {
+        $socket->destroy;
+    }
+}
 
 1;
 

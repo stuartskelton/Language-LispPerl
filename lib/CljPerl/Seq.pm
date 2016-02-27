@@ -1,147 +1,155 @@
 package CljPerl::Seq;
 
-  use strict;
-  use warnings;
+use strict;
+use warnings;
 
-  use CljPerl::Logger;
-  use CljPerl::Printer;
+use CljPerl::Logger;
+use CljPerl::Printer;
 
-  our $VERSION = '0.10';
-  our $id = 0;
+our $VERSION = '0.10';
+our $id      = 0;
 
-  sub new {
+sub new {
     my $class = shift;
     my $type  = shift;
     $type = "list" if !defined $type;
     my $value = shift;
-    my @seq = ();
+    my @seq   = ();
     $value = \@seq if !defined $value;
-    my $self = {class=>"Seq",
-	        type=>$type,
-                value=>$value,
-                object_id=>"seq" . ($id++), 
-                meta=>undef,
-                pos=>{filename=>"unknown",
-		      line=>0,
-	              col=>0}};
+    my $self = {
+        class     => "Seq",
+        type      => $type,
+        value     => $value,
+        object_id => "seq" . ( $id++ ),
+        meta      => undef,
+        pos       => {
+            filename => "unknown",
+            line     => 0,
+            col      => 0
+        }
+    };
     bless $self;
     return $self;
-  }
+}
 
-  sub class {
+sub class {
     my $self = shift;
     return $self->{class};
-  }
+}
 
-  sub type {
+sub type {
     my $self = shift;
     my $type = shift;
-    if(defined $type) {
-      $self->{type} = $type;
-    } else {
-      return $self->{type};
+    if ( defined $type ) {
+        $self->{type} = $type;
     }
-  }
+    else {
+        return $self->{type};
+    }
+}
 
-  sub object_id {
+sub object_id {
     my $self = shift;
     return $self->{object_id};
-  }
+}
 
-  sub meta {
+sub meta {
     my $self = shift;
     my $meta = shift;
-    if(defined $meta) {
-      $self->{meta} = $meta;
-    } else {
-      return $self->{meta};
+    if ( defined $meta ) {
+        $self->{meta} = $meta;
     }
-  }
+    else {
+        return $self->{meta};
+    }
+}
 
-  sub value {
-    my $self = shift;
+sub value {
+    my $self  = shift;
     my $value = shift;
-    if(defined $value) {
-      $self->{value} = $value;
-    } else {
-      return $self->{value};
+    if ( defined $value ) {
+        $self->{value} = $value;
     }
-  }
+    else {
+        return $self->{value};
+    }
+}
 
-  sub prepend {
+sub prepend {
     my $self = shift;
-    my $v = shift;
-    unshift @{$self->{value}}, $v;
-  }
+    my $v    = shift;
+    unshift @{ $self->{value} }, $v;
+}
 
-  sub append {
+sub append {
     my $self = shift;
-    my $v = shift;
-    push @{$self->{value}}, $v;
-  }
+    my $v    = shift;
+    push @{ $self->{value} }, $v;
+}
 
-  sub size {
+sub size {
     my $self = shift;
-    return scalar @{$self->{value}};
-  }
+    return scalar @{ $self->{value} };
+}
 
-  sub first {
+sub first {
     my $self = shift;
-    return undef if($self->size() < 1);
+    return undef if ( $self->size() < 1 );
     return $self->{value}->[0];
-  }
+}
 
-  sub second {
+sub second {
     my $self = shift;
-    return undef if($self->size() < 2);
+    return undef if ( $self->size() < 2 );
     return $self->{value}->[1];
-  }
+}
 
-  sub third {
+sub third {
     my $self = shift;
-    return undef if($self->size() < 3);
+    return undef if ( $self->size() < 3 );
     return $self->{value}->[2];
-  }
+}
 
-  sub fourth {
+sub fourth {
     my $self = shift;
-    return undef if($self->size() < 4);
+    return undef if ( $self->size() < 4 );
     return $self->{value}->[3];
-  }
+}
 
-  sub slice {
-    my $self = shift;
+sub slice {
+    my $self  = shift;
     my @range = @_;
-    return @{$self->{value}}[@range];
-  }
+    return @{ $self->{value} }[@range];
+}
 
-  sub each {
+sub each {
     my $self = shift;
-    my $blk = shift;
-    foreach my $i (@{$self->{value}}) {
-      $blk->($i) if defined $i;
+    my $blk  = shift;
+    foreach my $i ( @{ $self->{value} } ) {
+        $blk->($i) if defined $i;
     }
-  }
+}
 
-  sub show {
-    my $self = shift;
+sub show {
+    my $self   = shift;
     my $indent = shift;
     $indent = "" if !defined $indent;
     print $indent . "type: " . $self->{type} . "\n";
     print $indent . "(\n";
-    $self->each(sub {$_[0]->show($indent . "  "); print $indent . "  ,\n";});
+    $self->each( sub { $_[0]->show( $indent . "  " ); print $indent . "  ,\n"; }
+    );
     print $indent . ")\n";
-  }
+}
 
-  sub error {
+sub error {
     my $self = shift;
-    my $msg = shift;
+    my $msg  = shift;
     $msg .= " [";
     $msg .= CljPerl::Printer::to_string($self);
     $msg .= "] @[file: " . $self->{pos}->{filename};
     $msg .= " ;line: " . $self->{pos}->{line};
     $msg .= " ;col: " . $self->{pos}->{col} . "]";
     CljPerl::Logger::error($msg);
-  }
+}
 
 1;
