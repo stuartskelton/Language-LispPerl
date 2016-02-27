@@ -10,7 +10,6 @@ use File::Spec;
 use File::Basename;
 use Coro;
 
-our $VERSION = '0.10';
 
 our $namespace_key = "0namespace0";
 

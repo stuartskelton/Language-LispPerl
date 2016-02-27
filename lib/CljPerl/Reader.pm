@@ -6,7 +6,6 @@ use CljPerl::Seq;
 use CljPerl::Atom;
 use CljPerl::Logger;
 
-our $VERSION = '0.10';
 
 sub new {
     my $class = shift;

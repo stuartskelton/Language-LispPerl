@@ -3,7 +3,6 @@ package CljPerl::SocketServer;
 use strict;
 use warnings;
 
-our $VERSION = '0.10';
 
 use AnyEvent::Socket;
 use AnyEvent::Handle;

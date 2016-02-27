@@ -6,7 +6,6 @@ use warnings;
 use CljPerl::Printer;
 use CljPerl::Logger;
 
-our $VERSION = '0.10';
 our $id      = 0;
 
 sub new {
