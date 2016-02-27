@@ -4,3 +4,6 @@ MYMETA.*
 
 # Emacs files
 **~
+
+# Dzil stuff
+.build
