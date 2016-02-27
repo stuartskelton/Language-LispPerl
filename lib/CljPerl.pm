@@ -13,87 +13,83 @@ use CljPerl::Evaler;
 our @ISA = qw(Exporter);
 
 # This allows declaration	use CljPerl ':all';
-our %EXPORT_TAGS = ( 'all' => [ qw(
-	
-) ] );
+our %EXPORT_TAGS = ( all => [] );
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+our @EXPORT_OK = @{ $EXPORT_TAGS{'all'} };
 
-our @EXPORT = qw(
-	
-);
+our @EXPORT = qw();
 
 our $VERSION = '0.10';
-
 
 # Preloaded methods go here.
 
 # file
 sub print {
-  print @_;
+    print @_;
 }
 
 sub openfile {
-  my $file = shift;
-  my $cb = shift;
-  my $fh;
-  open $fh, $file;
-  &{$cb}($fh);
-  close $fh;
+    my $file = shift;
+    my $cb   = shift;
+    my $fh;
+    open $fh, $file;
+    &{$cb}($fh);
+    close $fh;
 }
 
 sub puts {
-  my $fh = shift;
-  my $str = shift;
-  print $fh $str;
+    my $fh  = shift;
+    my $str = shift;
+    print $fh $str;
 }
 
 sub readline {
-  my $fh = shift;
-  return <$fh>;
+    my $fh = shift;
+    return <$fh>;
 }
 
 sub readlines {
-  my $file = shift;
-  my $fh;
-  open $fh, "<$file";
-  my @lines = <$fh>;
-  close $fh;
-  return join("\n", @lines);
+    my $file = shift;
+    my $fh;
+    open $fh, "<$file";
+    my @lines = <$fh>;
+    close $fh;
+    return join( "\n", @lines );
 }
 
 sub file_exists {
-  my $file = shift;
-  return \(-e $file);
+    my $file = shift;
+    return \( -e $file );
 }
 
 # lib search path
 sub use_lib {
-  my $path = shift;
-  unshift @INC, $path;
+    my $path = shift;
+    unshift @INC, $path;
 }
 
-my $lib_path = File::Spec->rel2abs(dirname(__FILE__) . "/CljPerl");
+my $lib_path = File::Spec->rel2abs( dirname(__FILE__) . "/CljPerl" );
 use_lib($lib_path);
 
 sub gen_name {
-  return "gen-" . rand;
+    return "gen-" . rand;
 }
 
 # regexp
 sub match {
-  my $regexp = shift;
-  my $str = shift;
-  my @m = ($str =~ qr($regexp));
-  return \@m;
+    my $regexp = shift;
+    my $str    = shift;
+    my @m      = ( $str =~ qr($regexp) );
+    return \@m;
 }
 
 sub get_env {
-  my $name = shift;
-  return $ENV{$name};
+    my $name = shift;
+    return $ENV{$name};
 }
 
 1;
+
 __END__
 
 =head1 NAME
