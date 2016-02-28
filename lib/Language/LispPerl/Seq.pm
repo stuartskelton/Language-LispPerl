@@ -1,10 +1,10 @@
-package CljPerl::Seq;
+package Language::LispPerl::Seq;
 
 use strict;
 use warnings;
 
-use CljPerl::Logger;
-use CljPerl::Printer;
+use Language::LispPerl::Logger;
+use Language::LispPerl::Printer;
 
 our $id      = 0;
 
@@ -144,11 +144,11 @@ sub error {
     my $self = shift;
     my $msg  = shift;
     $msg .= " [";
-    $msg .= CljPerl::Printer::to_string($self);
+    $msg .= Language::LispPerl::Printer::to_string($self);
     $msg .= "] @[file: " . $self->{pos}->{filename};
     $msg .= " ;line: " . $self->{pos}->{line};
     $msg .= " ;col: " . $self->{pos}->{col} . "]";
-    CljPerl::Logger::error($msg);
+    Language::LispPerl::Logger::error($msg);
 }
 
 1;

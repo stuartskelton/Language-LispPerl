@@ -1,10 +1,10 @@
-package CljPerl::Reader;
+package Language::LispPerl::Reader;
 
 use strict;
 use warnings;
-use CljPerl::Seq;
-use CljPerl::Atom;
-use CljPerl::Logger;
+use Language::LispPerl::Seq;
+use Language::LispPerl::Atom;
+use Language::LispPerl::Logger;
 
 
 sub new {
@@ -152,7 +152,7 @@ sub parse {
     $self->filename($file_or_str);
     $self->line(1);
     $self->col(1);
-    my $ast = CljPerl::Seq->new();
+    my $ast = Language::LispPerl::Seq->new();
     do {
         $self->skip_blanks();
         my $r = $self->lex();
@@ -220,12 +220,12 @@ sub lex {
         elsif ( $c eq "'" ) {
             $self->consume(1);
             my $q = $self->lex();
-            return CljPerl::Atom->new( "quotation", $q );
+            return Language::LispPerl::Atom->new( "quotation", $q );
         }
         elsif ( $c eq "`" ) {
             $self->consume(1);
             my $sq = $self->lex();
-            return CljPerl::Atom->new( "syntaxquotation", $sq );
+            return Language::LispPerl::Atom->new( "syntaxquotation", $sq );
         }
         elsif ( $c eq "~" ) {
             $self->consume(1);
@@ -262,11 +262,11 @@ sub dispatch {
     if ( defined $c ) {
         if ( $c eq ":" ) {
             $self->consume(1);
-            return CljPerl::Atom->new( "accessor", $self->lex() );
+            return Language::LispPerl::Atom->new( "accessor", $self->lex() );
         }
         elsif ( $c eq "!" ) {
             $self->consume(1);
-            return CljPerl::Atom->new( "sender", $self->lex() );
+            return Language::LispPerl::Atom->new( "sender", $self->lex() );
         }
         elsif ( $c eq '[' ) {
             return $self->seq( "xml", "[", "]" );
@@ -295,7 +295,7 @@ sub comment {
 sub string {
     my $self = shift;
     my $c    = undef;
-    my $s    = CljPerl::Atom->new("string");
+    my $s    = Language::LispPerl::Atom->new("string");
     $s->{pos} = {
         filename => $self->filename(),
         line     => $self->line(),
@@ -357,7 +357,7 @@ sub string {
 sub number {
     my $self = shift;
     my $c    = undef;
-    my $n    = CljPerl::Atom->new("number");
+    my $n    = Language::LispPerl::Atom->new("number");
     $n->{pos} = {
         filename => $self->filename(),
         line     => $self->line(),
@@ -399,7 +399,7 @@ sub number {
 sub symbol {
     my $self = shift;
     my $c    = undef;
-    my $sym  = CljPerl::Atom->new("symbol");
+    my $sym  = Language::LispPerl::Atom->new("symbol");
     $self->skip_blanks();
     $sym->{pos} = {
         filename => $self->filename(),
@@ -455,7 +455,7 @@ sub seq {
         $self->error( "expect " . $begin );
     }
     $self->skip_blanks();
-    my $seq = CljPerl::Seq->new($type);
+    my $seq = Language::LispPerl::Seq->new($type);
     $seq->{pos} = {
         filename => $self->filename(),
         line     => $self->line(),
@@ -485,6 +485,6 @@ sub error {
     $msg .= " @[file: " . $self->filename();
     $msg .= "; line: " . $self->line();
     $msg .= "; col: " . $self->col() . "]";
-    CljPerl::Logger::error($msg);
+    Language::LispPerl::Logger::error($msg);
 }
 1;

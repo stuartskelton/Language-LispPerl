@@ -1,4 +1,4 @@
-package CljPerl::SocketServer;
+package Language::LispPerl::SocketServer;
 
 use strict;
 use warnings;

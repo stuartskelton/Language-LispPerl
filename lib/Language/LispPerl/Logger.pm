@@ -1,4 +1,4 @@
-package CljPerl::Logger;
+package Language::LispPerl::Logger;
 
 use strict;
 use warnings;

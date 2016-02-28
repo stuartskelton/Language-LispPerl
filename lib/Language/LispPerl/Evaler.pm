@@ -1,14 +1,27 @@
-package CljPerl::Evaler;
+package Language::LispPerl::Evaler;
 
 use strict;
 use warnings;
 
-use CljPerl::Reader;
-use CljPerl::Var;
-use CljPerl::Printer;
+use File::ShareDir;
 use File::Spec;
 use File::Basename;
+
+use Language::LispPerl::Reader;
+use Language::LispPerl::Var;
+use Language::LispPerl::Printer;
+
 use Coro;
+
+BEGIN{
+  # The test compatible File::Share
+  eval{ require File::Share; File::Share->import('dist_dir'); };
+  if( $@ ){
+    # The production only File::ShareDir
+    require File::ShareDir;
+    File::ShareDir->import('dist_dir');
+  }
+};
 
 
 our $namespace_key = "0namespace0";
@@ -101,7 +114,7 @@ sub new_var {
     my $value = shift;
     my $scope = $self->current_scope();
     $name = $self->current_namespace() . "#" . $name;
-    $scope->{$name} = CljPerl::Var->new( $name, $value );
+    $scope->{$name} = Language::LispPerl::Var->new( $name, $value );
 }
 
 sub var {
@@ -131,35 +144,52 @@ sub current_file {
     }
 }
 
+=head2 search_file
+
+Looks up the given file name (fully qualified, with clp extension or not)
+in this package's share directory or in @INC.
+
+dies with an error if no file can be found.
+
+Usage:
+
+  $this->search_file('core');
+
+=cut
+
 sub search_file {
     my $self = shift;
     my $file = shift;
-    foreach my $ext ( "", ".clp" ) {
+
+    my $dist_dir = dist_dir( 'Language::LispPerl' );
+    warn "Dist dir = $dist_dir";
+
+    foreach my $ext ( '', '.clp' ) {
         if ( -f "$file$ext" ) {
             return "$file$ext";
         }
-        elsif ( -f dirname( $self->current_file() ) . "/$file$ext" ) {
-            return dirname( $self->current_file() ) . "/$file$ext";
-        }
-        elsif ( -f $file . $ext ) {
-            return $file . $ext;
+        elsif ( -f $dist_dir. "/lisp/$file$ext" ) {
+          return $dist_dir . "/lisp/$file$ext";
         }
         foreach my $p (@INC) {
-            if ( -f "$p/$file$ext" ) {
-                return "$p/$file$ext";
-            }
+          if ( -f "$p/$file$ext" ) {
+            return "$p/$file$ext";
+          }
         }
     }
-    CljPerl::Logger::error( "cannot find " . $file );
+    Language::LispPerl::Logger::error( "cannot find " . $file );
 }
 
 sub load {
     my $self = shift;
     my $file = shift;
-    CljPerl::Logger::error(
+
+    Language::LispPerl::Logger::error(
         "cannot require file " . $file . " in non-global scope" )
       if scalar @{ $self->scopes() } > 1;
+
     $file = File::Spec->rel2abs( $self->search_file($file) );
+
     return 1 if exists $self->{loaded_files}->{$file};
     $self->{loaded_files}->{$file} = 1;
     push @{ $self->{file_stack} }, $file;
@@ -171,7 +201,7 @@ sub load {
 sub read {
     my $self   = shift;
     my $file   = shift;
-    my $reader = CljPerl::Reader->new();
+    my $reader = Language::LispPerl::Reader->new();
     $reader->read_file($file);
     my $res = undef;
     $reader->ast()->each( sub { $res = $self->_eval( $_[0] ) } );
@@ -181,7 +211,7 @@ sub read {
 sub eval {
     my $self   = shift;
     my $str    = shift;
-    my $reader = CljPerl::Reader->new();
+    my $reader = Language::LispPerl::Reader->new();
     $reader->read_string($str);
     my $res = undef;
     $reader->ast()->each( sub { $res = $self->_eval( $_[0] ) } );
@@ -257,10 +287,10 @@ our $builtin_funcs = {
     "trace-vars"        => 1
 };
 
-our $empty_list = CljPerl::Seq->new("list");
-our $true       = CljPerl::Atom->new( "bool", "true" );
-our $false      = CljPerl::Atom->new( "bool", "false" );
-our $nil        = CljPerl::Atom->new( "nil", "nil" );
+our $empty_list = Language::LispPerl::Seq->new("list");
+our $true       = Language::LispPerl::Atom->new( "bool", "true" );
+our $false      = Language::LispPerl::Atom->new( "bool", "false" );
+our $nil        = Language::LispPerl::Atom->new( "nil", "nil" );
 
 sub bind {
     my $self  = shift;
@@ -278,10 +308,10 @@ sub bind {
         return $nil;
     }
     elsif ( $type eq "accessor" ) {
-        return CljPerl::Atom->new( "accessor", $self->bind($value) );
+        return Language::LispPerl::Atom->new( "accessor", $self->bind($value) );
     }
     elsif ( $type eq "sender" ) {
-        return CljPerl::Atom->new( "sender", $self->bind($value) );
+        return Language::LispPerl::Atom->new( "sender", $self->bind($value) );
     }
     elsif ( $type eq "syntaxquotation" or $type eq "quotation" ) {
         $self->{syntaxquotation_scope} += 1 if $type eq "syntaxquotation";
@@ -314,12 +344,12 @@ sub bind {
     elsif ( $type eq "symbol"
         and $self->{quotation_scope} > 0 )
     {
-        my $q = CljPerl::Atom->new( "quotation", $value );
+        my $q = Language::LispPerl::Atom->new( "quotation", $value );
         return $q;
     }
     elsif ( $class eq "Seq" ) {
         return $empty_list if $type eq "list" and $ast->size() == 0;
-        my $list = CljPerl::Seq->new("list");
+        my $list = Language::LispPerl::Seq->new("list");
         $list->type($type);
         foreach my $i ( @{$value} ) {
             if ( $i->type() eq "dequotation" and $i->value() =~ /^@/ ) {
@@ -432,7 +462,7 @@ sub _eval {
                 if ( $name eq "&" ) {
                     $i++;
                     $name      = $fargsvalue->[$i]->value();
-                    $rest_args = CljPerl::Seq->new("list");
+                    $rest_args = Language::LispPerl::Seq->new("list");
                     $self->new_var( $name, $rest_args );
                 }
                 else {
@@ -487,7 +517,7 @@ sub _eval {
                 if ( $name eq "&" ) {
                     $i++;
                     $name      = $fargsvalue->[$i]->value();
-                    $rest_args = CljPerl::Seq->new("list");
+                    $rest_args = Language::LispPerl::Seq->new("list");
                     $self->new_var( $name, $rest_args );
                 }
                 else {
@@ -522,7 +552,7 @@ sub _eval {
     }
     elsif ( $type eq "accessor" ) {
         my $av = $self->_eval($value);
-        my $a  = CljPerl::Atom->new( "unknown", $av->value() );
+        my $a  = Language::LispPerl::Atom->new( "unknown", $av->value() );
         my $at = $av->type();
         if ( $at eq "number" ) {
             $a->type("index accessor");
@@ -541,7 +571,7 @@ sub _eval {
         $ast->error( "sender expects a string or keyword but got " . $type )
           if $sn->type() ne "string"
           and $sn->type() ne "keyword";
-        my $s = CljPerl::Atom->new( "symbol", $sn->value() );
+        my $s = Language::LispPerl::Atom->new( "symbol", $sn->value() );
         return $self->bind($s);
     }
     elsif ( $type eq "symbol" ) {
@@ -554,7 +584,7 @@ sub _eval {
         return $self->bind($ast);
     }
     elsif ( $class eq "Seq" and $type eq "vector" ) {
-        my $v  = CljPerl::Atom->new("vector");
+        my $v  = Language::LispPerl::Atom->new("vector");
         my @vv = ();
         foreach my $i ( @{$value} ) {
             push @vv, $self->_eval($i);
@@ -563,7 +593,7 @@ sub _eval {
         return $v;
     }
     elsif ( $class eq "Seq" and ( $type eq "map" or $type eq "meta" ) ) {
-        my $m  = CljPerl::Atom->new("map");
+        my $m  = Language::LispPerl::Atom->new("map");
         my %mv = ();
         my $n  = scalar @{$value};
         $ast->error( $type . " should have even number of items" )
@@ -598,7 +628,7 @@ sub _eval {
           and $firsttype ne "string"
           and $firsttype ne "keyword";
         my @items = ();
-        my $xml = CljPerl::Atom->new( "xml", \@items );
+        my $xml = Language::LispPerl::Atom->new( "xml", \@items );
         $xml->{name} = $first->value();
         my @rest = $ast->slice( 1 .. $size - 1 );
         foreach my $i (@rest) {
@@ -660,7 +690,7 @@ sub builtin {
         $ast->error( "throw expects a string as the second argument but got "
               . $msg->type() )
           if $msg->type() ne "string";
-        my $e = CljPerl::Atom->new( "exception", $msg->value() );
+        my $e = Language::LispPerl::Atom->new( "exception", $msg->value() );
         $e->{label} = $label->value();
         my @caller = @{ $self->{caller} };
         $e->{caller}       = \@caller;
@@ -673,7 +703,7 @@ sub builtin {
         $ast->error( "exception-label expects an exception as argument but got "
               . $e->type() )
           if $e->type() ne "exception";
-        return CljPerl::Atom->new( "string", $e->{label} );
+        return Language::LispPerl::Atom->new( "string", $e->{label} );
     }
     elsif ( $fn eq "exception-message" ) {
         $ast->error("exception-message expects 1 argument") if $size != 2;
@@ -682,7 +712,7 @@ sub builtin {
             "exception-message expects an exception as argument but got "
               . $e->type() )
           if $e->type() ne "exception";
-        return CljPerl::Atom->new( "string", $e->value() );
+        return Language::LispPerl::Atom->new( "string", $e->value() );
     }
     elsif ( $fn eq "catch" ) {
         $ast->error("catch expects 2 arguments") if $size != 3;
@@ -697,7 +727,7 @@ sub builtin {
         if ($@) {
             my $e = $self->{exception};
             if ( !defined $e ) {
-                $e = CljPerl::Atom->new( "exception", "unkown expection" );
+                $e = Language::LispPerl::Atom->new( "exception", "unkown expection" );
                 $e->{label} = "undef";
                 my @ec = ();
                 $e->{caller} = \@ec;
@@ -709,7 +739,7 @@ sub builtin {
             for ( ; $i > $saved_caller_depth ; $i-- ) {
                 $self->pop_caller();
             }
-            my $call_handler = CljPerl::Seq->new("list");
+            my $call_handler = Language::LispPerl::Seq->new("list");
             $call_handler->append($handler);
             $call_handler->append($e);
             $self->{exception} = undef;
@@ -825,7 +855,7 @@ sub builtin {
             }
             $i++;
         }
-        my $nast = CljPerl::Atom->new( "function", $ast );
+        my $nast = Language::LispPerl::Atom->new( "function", $ast );
         my %c    = %{ $self->current_scope() };
         my @ns   = @{ $c{$namespace_key} };
         $c{$namespace_key} = \@ns;
@@ -855,7 +885,7 @@ sub builtin {
             }
             $i++;
         }
-        my $nast = CljPerl::Atom->new( "macro", $ast );
+        my $nast = Language::LispPerl::Atom->new( "macro", $ast );
         my %c    = %{ $self->current_scope() };
         my @ns   = @{ $c{$namespace_key} };
         $c{$namespace_key} = \@ns;
@@ -867,7 +897,7 @@ sub builtin {
     }
     elsif ( $fn eq "gen-sym" ) {
         $ast->error("gen-sym expects 0/1 argument") if $size > 2;
-        my $s = CljPerl::Atom->new("symbol");
+        my $s = Language::LispPerl::Atom->new("symbol");
         if ( $size == 2 ) {
             my $pre = $self->_eval( $ast->second() );
             $ast->("gen-sym expects string as argument")
@@ -905,7 +935,7 @@ sub builtin {
     elsif ( $fn eq "list" ) {
         return $empty_list if $size == 1;
         my @vs = $ast->slice( 1 .. $size - 1 );
-        my $r  = CljPerl::Seq->new("list");
+        my $r  = Language::LispPerl::Seq->new("list");
         foreach my $i (@vs) {
             $r->append( $self->_eval($i) );
         }
@@ -930,7 +960,7 @@ sub builtin {
           if $v->type() ne "list";
         return $empty_list if ( $v->size() == 0 );
         my @vs = $v->slice( 1 .. $v->size() - 1 );
-        my $r  = CljPerl::Seq->new("list");
+        my $r  = Language::LispPerl::Seq->new("list");
         $r->value( \@vs );
         return $r;
 
@@ -946,7 +976,7 @@ sub builtin {
         my @vs = ();
         @vs = $rvs->slice( 0 .. $rvs->size() - 1 ) if $rvs->size() > 0;
         unshift @vs, $fv;
-        my $r = CljPerl::Seq->new("list");
+        my $r = Language::LispPerl::Seq->new("list");
         $r->value( \@vs );
         return $r;
 
@@ -1011,7 +1041,7 @@ sub builtin {
           or $v2->type() ne "number";
         my $vv1 = $v1->value();
         my $vv2 = $v2->value();
-        my $r   = CljPerl::Atom->new( "number", eval("$vv1 $fn $vv2") );
+        my $r   = Language::LispPerl::Atom->new( "number", eval("$vv1 $fn $vv2") );
         return $r;
 
         # == > < >= <= != logic operations
@@ -1041,7 +1071,7 @@ sub builtin {
         my $v = $self->_eval( $ast->second() );
         $ast->error( $fn . " expects xml as argument but got " . $v->type() )
           if $v->type() ne "xml";
-        return CljPerl::Atom->new( "string", $v->{name} );
+        return Language::LispPerl::Atom->new( "string", $v->{name} );
 
         # eq ne for string comparing
     }
@@ -1150,7 +1180,7 @@ sub builtin {
     elsif ( $fn eq "length" ) {
         $ast->error("length expects 1 argument") if $size != 2;
         my $v = $self->_eval( $ast->second() );
-        my $r = CljPerl::Atom->new( "number", 0 );
+        my $r = Language::LispPerl::Atom->new( "number", 0 );
         if ( $v->type() eq "string" ) {
             $r->value( length( $v->value() ) );
         }
@@ -1176,16 +1206,16 @@ sub builtin {
         my $v = $self->_eval( $ast->second() );
         my $r;
         if ( $v->type() eq "string" ) {
-            $r = CljPerl::Atom->new( "string", 0 );
+            $r = Language::LispPerl::Atom->new( "string", 0 );
             $r->value( reverse( $v->value() ) );
         }
         elsif ( $v->type() eq "list" ) {
-            $r = CljPerl::Seq->new("list");
+            $r = Language::LispPerl::Seq->new("list");
             my @vv = reverse @{ $v->value() };
             $r->value( \@vv );
         }
         elsif ( $v->type() eq "vector" or $v->type() eq "xml" ) {
-            $r = CljPerl::Atom->new( $v->type() );
+            $r = Language::LispPerl::Atom->new( $v->type() );
             my @vv = reverse @{ $v->value() };
             $r->value( \@vv );
         }
@@ -1215,22 +1245,22 @@ sub builtin {
                 and $v1type ne "map" )
           );
         if ( $v1type eq "string" ) {
-            return CljPerl::Atom->new( "string", $v1->value() . $v2->value() );
+            return Language::LispPerl::Atom->new( "string", $v1->value() . $v2->value() );
         }
         elsif ( $v1type eq "list" or $v1type eq "vector" ) {
             my @r = ();
             push @r, @{ $v1->value() };
             push @r, @{ $v2->value() };
             if ( $v1type eq "list" ) {
-                return CljPerl::Seq->new( "list", \@r );
+                return Language::LispPerl::Seq->new( "list", \@r );
             }
             else {
-                return CljPerl::Atom->new( "vector", \@r );
+                return Language::LispPerl::Atom->new( "vector", \@r );
             }
         }
         else {
             my %r = ( %{ $v1->value() }, %{ $v2->value() } );
-            return CljPerl::Atom->new( "map", \%r );
+            return Language::LispPerl::Atom->new( "map", \%r );
         }
 
         # (keys map)
@@ -1242,9 +1272,9 @@ sub builtin {
           if $v->type() ne "map";
         my @r = ();
         foreach my $k ( keys %{ $v->value() } ) {
-            push @r, CljPerl::Atom->new( "keyword", $k );
+            push @r, Language::LispPerl::Atom->new( "keyword", $k );
         }
-        return CljPerl::Seq->new( "list", \@r );
+        return Language::LispPerl::Seq->new( "list", \@r );
 
         # (namespace-begin "ns")
     }
@@ -1274,14 +1304,14 @@ sub builtin {
     elsif ( $fn eq "object-id" ) {
         $ast->error("object-id expects 1 argument") if $size != 2;
         my $v = $self->_eval( $ast->second() );
-        return CljPerl::Atom->new( "string", $v->object_id() );
+        return Language::LispPerl::Atom->new( "string", $v->object_id() );
 
         # (type obj)
     }
     elsif ( $fn eq "type" ) {
         $ast->error("type expects 1 argument") if $size != 2;
         my $v = $self->_eval( $ast->second() );
-        return CljPerl::Atom->new( "string", $v->type() );
+        return Language::LispPerl::Atom->new( "string", $v->type() );
 
         # (perlobj-type obj)
     }
@@ -1291,7 +1321,7 @@ sub builtin {
         $ast->error( "perlobj-type expects perlobject as argument but got "
               . $v->type() )
           if ( $v->type() ne "perlobject" );
-        return CljPerl::Atom->new( "string", ref( $v->value() ) );
+        return Language::LispPerl::Atom->new( "string", ref( $v->value() ) );
 
         # (apply fn list)
     }
@@ -1311,7 +1341,7 @@ sub builtin {
         $ast->error(
             "apply expects list as the first argument but got " . $l->type() )
           if $l->type() ne "list";
-        my $n = CljPerl::Seq->new("list");
+        my $n = Language::LispPerl::Seq->new("list");
         $n->append($f);
         foreach my $i ( @{ $l->value() } ) {
             $n->append($i);
@@ -1332,14 +1362,14 @@ sub builtin {
             $v->meta($vm);
         }
         my $m = $v->meta();
-        $ast->error( "no meta data in " . CljPerl::Printer::to_string($v) )
+        $ast->error( "no meta data in " . Language::LispPerl::Printer::to_string($v) )
           if !defined $m;
         return $m;
     }
     elsif ( $fn eq "clj->string" ) {
         $ast->error("clj->string expects 1 argument") if $size != 2;
         my $v = $self->_eval( $ast->second() );
-        return CljPerl::Atom->new( "string", CljPerl::Printer::to_string($v) );
+        return Language::LispPerl::Atom->new( "string", Language::LispPerl::Printer::to_string($v) );
 
         # (.namespace function args...)
     }
@@ -1383,14 +1413,14 @@ sub builtin {
             $ast->error("cannot find $mn");
         }
         else {
-            $ns = "CljPerl" if !defined $ns or $ns eq "";
+            $ns = "Language::LispPerl" if !defined $ns or $ns eq "";
             my $meta = undef;
             $meta = $self->_eval( $ast->third() )
               if defined $ast->third()
               and $ast->third()->type() eq "meta";
             $perl_func = \&{ $ns . "::" . $perl_func };
             my @rest = $ast->slice( ( defined $meta ? 3 : 2 ) .. $size - 1 );
-            unshift @rest, CljPerl::Atom->new( "string", $ns )
+            unshift @rest, Language::LispPerl::Atom->new( "string", $ns )
               if $blessed eq "->";
             return $self->perlfunc_call( $perl_func, $meta, \@rest, $ast );
         }
@@ -1409,7 +1439,7 @@ sub builtin {
     }
     elsif ( $fn eq "println" ) {
         $ast->error("println expects 1 argument") if $size != 2;
-        print CljPerl::Printer::to_string( $self->_eval( $ast->second() ) )
+        print Language::LispPerl::Printer::to_string( $self->_eval( $ast->second() ) )
           . "\n";
         return $nil;
     }
@@ -1420,13 +1450,13 @@ sub builtin {
             "core expects a function as argument but got " . $b->type() )
           if $b->type() ne "function";
         my $coro = new Coro sub {
-            my $evaler = CljPerl::Evaler->new();
-            my $fc     = CljPerl::Seq->new("list");
+            my $evaler = Language::LispPerl::Evaler->new();
+            my $fc     = Language::LispPerl::Seq->new("list");
             $fc->append($b);
             $evaler->_eval($fc);
         };
         $coro->ready();
-        return CljPerl::Atom->new( "coroutine", $coro );
+        return Language::LispPerl::Atom->new( "coroutine", $coro );
     }
     elsif ( $fn eq "coro-suspend" ) {
         $ast->error("coro-suspend expects 1 argument") if $size != 2;
@@ -1441,12 +1471,12 @@ sub builtin {
         $ast->error("coro-sleep expects 0 argument") if $size != 1;
         $Coro::current->suspend();
         cede;
-        return CljPerl::Atom->new( "coroutine", $Coro::current );
+        return Language::LispPerl::Atom->new( "coroutine", $Coro::current );
     }
     elsif ( $fn eq "coro-yield" ) {
         $ast->error("coro-yield expects 0 argument") if $size != 1;
         cede;
-        return CljPerl::Atom->new( "coroutine", $Coro::current );
+        return Language::LispPerl::Atom->new( "coroutine", $Coro::current );
     }
     elsif ( $fn eq "coro-resume" ) {
         $ast->error("coro-resume expects 1 argument") if $size != 2;
@@ -1478,11 +1508,11 @@ sub builtin {
     }
     elsif ( $fn eq "coro-current" ) {
         $ast->error("coro-current expects 0 argument") if $size != 1;
-        return CljPerl::Atom->new( "coroutine", $Coro::current );
+        return Language::LispPerl::Atom->new( "coroutine", $Coro::current );
     }
     elsif ( $fn eq "coro-main" ) {
         $ast->error("coro-main expects 0 argument") if $size != 1;
-        return CljPerl::Atom->new( "coroutine", $Coro::main );
+        return Language::LispPerl::Atom->new( "coroutine", $Coro::main );
     }
     elsif ( $fn eq "trace-vars" ) {
         $ast->error("trace-vars expects 0 argument") if $size != 1;
@@ -1591,7 +1621,7 @@ sub perlfunc_call {
     }
     elsif ( $ret_type eq 'raw' ) {
 
-        # The perl function is expected to return a raw CljPerl::Atom
+        # The perl function is expected to return a raw Language::LispPerl::Atom
         return $perl_func->(@args);
     }
     else {
@@ -1642,7 +1672,7 @@ sub clj2perl {
     elsif ( $type eq "function" ) {
         my $f = sub {
             my @args = @_;
-            my $cljf = CljPerl::Seq->new("list");
+            my $cljf = Language::LispPerl::Seq->new("list");
             $cljf->append($ast);
             foreach my $arg (@args) {
                 $cljf->append( &perl2clj($arg) );
@@ -1662,36 +1692,36 @@ sub wrap_perlobj {
     while ( ref($v) eq "REF" ) {
         $v = ${$v};
     }
-    return CljPerl::Atom->new( "perlobject", $v );
+    return Language::LispPerl::Atom->new( "perlobject", $v );
 }
 
 sub perl2clj {
     my $v = shift;    #$ast->value();
     if ( !defined ref($v) or ref($v) eq "" ) {
-        return CljPerl::Atom->new( "string", $v );
+        return Language::LispPerl::Atom->new( "string", $v );
     }
     elsif ( ref($v) eq "SCALAR" ) {
-        return CljPerl::Atom->new( "string", ${$v} );
+        return Language::LispPerl::Atom->new( "string", ${$v} );
     }
     elsif ( ref($v) eq "HASH" ) {
         my %m = ();
         foreach my $k ( keys %{$v} ) {
             $m{$k} = &perl2clj( $v->{$k} );
         }
-        return CljPerl::Atom->new( "map", \%m );
+        return Language::LispPerl::Atom->new( "map", \%m );
     }
     elsif ( ref($v) eq "ARRAY" ) {
         my @a = ();
         foreach my $i ( @{$v} ) {
             push @a, &perl2clj($i);
         }
-        return CljPerl::Atom->new( "vector", \@a );
+        return Language::LispPerl::Atom->new( "vector", \@a );
     }
     elsif ( ref($v) eq "CODE" ) {
-        return CljPerl::Atom->new( "perlfunction", $v );
+        return Language::LispPerl::Atom->new( "perlfunction", $v );
     }
     else {
-        return CljPerl::Atom->new( "perlobject", $v );
+        return Language::LispPerl::Atom->new( "perlobject", $v );
 
         #$ast->error("expect a reference of scalar or hash or array");
     }
@@ -1702,7 +1732,7 @@ sub trace_vars {
     print @{ $self->scopes() } . "\n";
     foreach my $vn ( keys %{ $self->current_scope() } ) {
         print
-          "$vn\n" # . CljPerl::Printer::to_string(${$self->current_scope()}{$vn}->value()) . "\n";
+          "$vn\n" # . Language::LispPerl::Printer::to_string(${$self->current_scope()}{$vn}->value()) . "\n";
     }
 }
 

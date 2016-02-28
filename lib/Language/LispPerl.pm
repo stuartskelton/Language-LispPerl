@@ -1,4 +1,4 @@
-package CljPerl;
+package Language::LispPerl;
 
 use 5.008008;
 use strict;
@@ -8,11 +8,11 @@ use File::Spec;
 
 require Exporter;
 
-use CljPerl::Evaler;
+use Language::LispPerl::Evaler;
 
 our @ISA = qw(Exporter);
 
-# This allows declaration	use CljPerl ':all';
+# This allows declaration	use Language::LispPerl ':all';
 our %EXPORT_TAGS = ( all => [] );
 
 our @EXPORT_OK = @{ $EXPORT_TAGS{'all'} };
@@ -67,7 +67,7 @@ sub use_lib {
     unshift @INC, $path;
 }
 
-my $lib_path = File::Spec->rel2abs( dirname(__FILE__) . "/CljPerl" );
+my $lib_path = File::Spec->rel2abs( dirname(__FILE__) . "/LispPerl" );
 use_lib($lib_path);
 
 sub gen_name {
@@ -93,7 +93,7 @@ __END__
 
 =head1 NAME
 
-CljPerl - A lisp on perl.
+Language::LispPerl - A lisp in pure perl with Perl bindings.
 
 =head1 SYNOPSIS
 
@@ -108,26 +108,25 @@ CljPerl - A lisp on perl.
 
 =head1 DESCRIPTION
 
-CljPerl is a lisp implemented by Perl. It borrows the idea from Clojure,
-which makes a seamless connection with Java packages.
-Like Java, Perl has huge number of CPAN packages.
-They are amazing resources. We should make use of them as possible.
-However, programming in lisp is more insteresting.
-CljPerl is a bridge between lisp and perl. We can program in lisp and
+Language::LispPerl is a pure Perl lisp interpreter.
+It is a fork of L<CljPerl> that focuses on making embedding
+lisp code in your Perl written software straightforward.
+
+Language::ListPerl also bridges between lisp to perl. We can program in lisp and
 make use of the great resource from CPAN.
 
-=head2 EXPORT
+=head2 BINDING Perl function to Lisp
 
 =head3 Lisp <-> Perl
 
-CljPerl is hosted on Perl. Any object of CljPerl can be passed into Perl and vice versa including code.
+Language::LispPerl is hosted on Perl. Any object of Language::LispPerl can be passed into Perl and vice versa including code.
 
-An example of using Perl's IO functions.
+Here is an example of such binding taken from this module:
 
-=head4 Perl functions in CljPerl.pm
+=head4 Perl functions in Language::LispPerl;
 
-	package CljPerl;
-	
+	package Language::LispPerl;
+
 	sub open {
 	  my $file = shift;
 	  my $cb = shift;
@@ -136,46 +135,52 @@ An example of using Perl's IO functions.
 	  &{$cb}($fh);
 	  close $fh;
 	}
-	
+
 	sub puts {
 	  my $fh = shift;
 	  my $str = shift;
 	  print $fh $str;
 	}
-	
+
 	sub readline {
 	  my $fh = shift;
 	  return <$fh>;
 	}
-	
-=head4 CljPerl functions in core.clp
 
+=head4 Binding to these functions from file.clp
+
+        ;; These lisp binding functions will live
+        ;; in the namespace 'file'
 	(ns file
-	  (defn open [file cb]
-	    (. open file cb))
-	
-	  (defn >> [fh str]
-	    (. puts fh str))
-	
-	  (defn << [fh]
-	    (. readline fh)))
+          (. require Language::LispPerl)
 
-=head4 Test
+	  (defn open [file cb]
+	    (.Language::LispPerl open file cb))
+
+	  (defn >> [fh str]
+	    (.Language::LispPerl puts fh str))
+
+	  (defn << [fh]
+	    (.Language::LispPerl readline fh)))
+
+=head4 Usage in lisp space:
 
 	(file#open ">t.txt" (fn [f]
 	  (file#>> f "aaa")))
-	
+
 	(file#open "<t.txt" (fn [f]
 	  (println (perl->clj (file#<< f)))))
 
-An advanced example which creates a timer with AnyEvent.
+=head3 Importing and using any Perl package.
+
+=head4 An example which creates a timer with AnyEvent.
 
 	(. require AnyEvent)
 
 	(def cv (->AnyEvent condvar))
-	
+
 	(def count 0)
-	
+
 	(def t (->AnyEvent timer
 	  {:after 1
 	   :interval 1
@@ -184,12 +189,12 @@ An advanced example which creates a timer with AnyEvent.
 	         (set! count (+ count 1))
 	         (if (>= count 10)
 	           (set! t nil)))}))
-	
+
 	(.AnyEvent::CondVar::Base recv cv)
 
-=head3 Documents
+=head3 This lisp implementation
 
-=head4 Reader
+=head4 Atoms
 
  * Reader forms
 
@@ -210,6 +215,9 @@ An advanced example which creates a timer with AnyEvent.
    * Booleans :
 
 	true, false
+   * Nil :
+
+        nil
 
    * Keywords :
 
@@ -270,7 +278,7 @@ An advanced example which creates a timer with AnyEvent.
 
 	`(foo ~@bar)
 
-=head4 Builtin Functions
+=head4 Builtin  lisp Functions
 
  * list :
 
@@ -365,7 +373,7 @@ An advanced example which creates a timer with AnyEvent.
 
  * defmacro :
 
-	(defmacro foo [arg & args]	
+	(defmacro foo [arg & args]
 	  `(println ~arg)
 	  `(list ~@args))
 
@@ -374,7 +382,7 @@ An advanced example which creates a timer with AnyEvent.
 	(if (> 1 0)
 	  (println true)
 	  (println false))
-	  
+
 	(if true
 	  (println true))
 
@@ -391,7 +399,7 @@ An advanced example which creates a timer with AnyEvent.
 
  * perl->clj :
 
- * ! :
+ * ! not :
 
 	(! true) ;=> false
 
@@ -406,9 +414,9 @@ An advanced example which creates a timer with AnyEvent.
 	type : "scalar" "array" "hash" "ref" "nil"
 	^{:return type
 	  :arguments [type ...]}
-	
-	(.CljPerl print "foo")
-	(.CljPerl print ^{:return "nil" :arguments ["scalar"]} "foo") ; return nil and pass first argument as a scalar
+
+	(.Language::LispPerl print "foo")
+	(.Language::LispPerl print ^{:return "nil" :arguments ["scalar"]} "foo") ; return nil and pass first argument as a scalar
 
  * -> : (->[perl namespace] method args ...)
    Like '.', but this will pass perl namespace as first argument to perl method.
@@ -421,13 +429,13 @@ An advanced example which creates a timer with AnyEvent.
 
 	(trace-vars)
 
-=head4 Core Functions
+=head4 Core Functions (defined in core.clp
 
- * use-lib : append path into Perl and CljPerl files' searching paths.
+ * use-lib : append path into Perl and Language::LispPerl files' searching paths.
 
 	(use-lib "path")
 
- * ns : CljPerl namespace.
+ * ns : Language::LispPerl namespace.
 
 	(ns "foo"
 	  (println "bar"))
@@ -461,11 +469,17 @@ An advanced example which creates a timer with AnyEvent.
 
 =head1 SEE ALSO
 
+L<CljPerl>
+
 =head1 AUTHOR
 
-Wei Hu, E<lt>huwei04@hotmail.comE<gt>
+Current author: Jerome Eteve ( JETEVE )
+
+Original author: Wei Hu, E<lt>huwei04@hotmail.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
+
+Copyright 2016 Jerome Eteve. All rights Reserved.
 
 Copyright 2013 Wei Hu. All Rights Reserved.
 

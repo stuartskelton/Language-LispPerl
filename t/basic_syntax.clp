@@ -84,7 +84,7 @@
 (println (#:1 m))
 
 
-(.CljPerl print "aaa\n")
+(.Language::LispPerl print "aaa\n")
 
 (println (. print "bbb\n"))
 
@@ -96,7 +96,7 @@
 (#::a (meta m) 'c)
 (println (meta m))
 
-(require "../lib/CljPerl/core.clp")
+(require "core.clp")
 
 (defmulti mf type)
 (println (meta mf))
@@ -222,9 +222,10 @@
   (fn [e]
     (println e)))))
 
+
 (cond
-  [true (println "a")]
-  [else (println "b")])
+   [true (println "a")]
+   [else (println "b")])
 
 (println (env "PATH"))
 

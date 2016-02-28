@@ -1,4 +1,4 @@
-package CljPerl::Printer;
+package Language::LispPerl::Printer;
 
 use strict;
 use warnings;

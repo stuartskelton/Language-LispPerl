@@ -1,4 +1,4 @@
-package CljPerl::Var;
+package Language::LispPerl::Var;
 
 use strict;
 use warnings;

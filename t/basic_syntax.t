@@ -1,12 +1,13 @@
-# Before `make install' is performed this script should be runnable with
-# `make test'. After `make install' it should work as `perl CljPerl.t'
+#! perl
 
-#########################
+use strict;
+use warnings;
 
-use Test::More tests=>4;
-BEGIN { use_ok('CljPerl') };
+use Test::More;
 
-my $test = CljPerl::Evaler->new();
+use Language::LispPerl;
+
+my $test = Language::LispPerl::Evaler->new();
 
 ok($test->load("core"), 'load core');
 
@@ -14,3 +15,4 @@ ok($test->load("t/basic_syntax.clp"), 'basic syntax');
 
 ok($test->eval("(def abc \"abc\")"), 'eval');
 
+done_testing();
