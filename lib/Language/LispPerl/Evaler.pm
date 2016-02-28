@@ -3,6 +3,8 @@ package Language::LispPerl::Evaler;
 use strict;
 use warnings;
 
+use Coro;
+
 use File::ShareDir;
 use File::Spec;
 use File::Basename;
@@ -11,7 +13,7 @@ use Language::LispPerl::Reader;
 use Language::LispPerl::Var;
 use Language::LispPerl::Printer;
 
-use Coro;
+use Log::Any qw/$log/;
 
 BEGIN{
   # The test compatible File::Share
@@ -162,7 +164,7 @@ sub search_file {
     my $file = shift;
 
     my $dist_dir = dist_dir( 'Language::LispPerl' );
-    warn "Dist dir = $dist_dir";
+    $log->debug("Using dist dir = $dist_dir");
 
     foreach my $ext ( '', '.clp' ) {
         if ( -f "$file$ext" ) {
@@ -544,7 +546,7 @@ sub _eval {
             $self->pop_scope();
             $self->pop_caller();
             return $self->_eval($res);
-        }
+          }
         else {
             $ast->error(
                 "expect a function or function name or index/key accessor");

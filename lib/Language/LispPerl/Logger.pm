@@ -3,25 +3,29 @@ package Language::LispPerl::Logger;
 use strict;
 use warnings;
 
+use Carp;
+
+use Log::Any qw/$log/;
 
 sub error {
     my $msg = shift;
-    die "[E] $msg";
+    $log->error("$msg");
+    die $msg;
 }
 
 sub info {
     my $msg = shift;
-    print "[I] $msg";
+    $log->info($msg);
 }
 
 sub warn {
     my $msg = shift;
-    print "[W] $msg";
+    $log->warn($msg);
 }
 
 sub debug {
     my $msg = shift;
-    print "[D] $msg";
+    $log->debug($msg);
 }
 
 1;

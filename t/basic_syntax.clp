@@ -1,3 +1,8 @@
+(cond
+    [true (println "a")]
+    [else (println "b")])
+
+
 (def a 'b)
 ((fn [b & c]
   (def a 'c)
@@ -221,11 +226,6 @@
      (throw aaa "bbb")))
   (fn [e]
     (println e)))))
-
-
-(cond
-   [true (println "a")]
-   [else (println "b")])
 
 (println (env "PATH"))
 

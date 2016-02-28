@@ -7,6 +7,8 @@ use Test::More;
 
 use Language::LispPerl;
 
+#use Log::Any::Adapter qw/Stderr/;
+
 my $test = Language::LispPerl::Evaler->new();
 
 ok($test->load("core"), 'load core');
