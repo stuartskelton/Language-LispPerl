@@ -163,7 +163,7 @@ sub search_file {
     my $self = shift;
     my $file = shift;
 
-    my $dist_dir = dist_dir( 'Language::LispPerl' );
+    my $dist_dir = dist_dir( 'Language-LispPerl' );
     $log->debug("Using dist dir = $dist_dir");
 
     foreach my $ext ( '', '.clp' ) {
