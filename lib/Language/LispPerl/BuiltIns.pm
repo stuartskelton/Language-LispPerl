@@ -4,6 +4,8 @@ use Moo;
 
 use Carp;
 
+use Language::LispPerl::Atom;
+
 =head1 NAME
 
 Language::LispPerl::BuiltIns - Default builtin functions collection
@@ -18,10 +20,10 @@ has 'functions' => (
         {
             "eval"              => \&_impl_eval,
             "syntax"            => \&_impl_syntax,
-            # "catch"             => \&_impl_catch,
-            # "exception-label"   => \&_impl_exception_label,
-            # "exception-message" => 1,
-            # "throw"             => 1,
+            "throw"             => \&_impl_throw,
+            "catch"             => \&_impl_catch,
+            "exception-label"   => \&_impl_exception_label,
+            "exception-message" => \&_impl_exception_message,
             # "def"               => 1,
             # "set!"              => 1,
             # "let"               => 1,
@@ -134,6 +136,87 @@ sub _impl_syntax{
     my ($self, $ast) = @_;
     $ast->error("syntax expects 1 argument") if $ast->size != 2;
     return $self->evaler()->bind( $ast->second() );
+}
+
+# ( throw someexception "The message that goes with it")
+sub _impl_throw {
+    my ( $self, $ast ) = @_;
+    $ast->error("throw expects 2 arguments") if $ast->size != 3;
+    my $label = $ast->second();
+    $ast->error( "throw expects a symbol as the first argument but got "
+          . $label->type() )
+      if $label->type() ne "symbol";
+    my $msg = $self->evaler()->_eval( $ast->third() );
+    $ast->error( "throw expects a string as the second argument but got "
+          . $msg->type() )
+      if $msg->type() ne "string";
+
+    my $e = Language::LispPerl::Atom->new( "exception", $msg->value() );
+    $e->{label}  = $label->value();
+    $e->{caller} = $self->evaler()->copy_caller();
+    $e->{pos} = $ast->{pos};
+
+    $self->evaler()->exception($e);
+    die $msg->value()."\n";
+}
+
+
+# ( catch ... ... )
+sub _impl_catch{
+    my ($self, $ast) = @_;
+    $ast->error("catch expects 2 arguments") if $ast->size != 3;
+    my $handler = $self->evaler()->_eval( $ast->third() );
+    $ast->error(
+        "catch expects a function/lambda as the second argument but got "
+              . $handler->type() )
+        if $handler->type() ne "function";
+
+    my $res;
+    my $saved_caller_depth = $self->evaler()->caller_size();
+    eval { $res = $self->evaler()->_eval( $ast->second() ); };
+    if ($@) {
+        my $e = $self->evaler()->exception();
+        if ( !defined $e ) {
+            $e = Language::LispPerl::Atom->new( "exception", "unkown expection" );
+            $e->{label} = "undef";
+            my @ec = ();
+            $e->{caller} = \@ec;
+        }
+        $ast->error(
+            "catch expects an exception for handler but got " . $e->type() )
+            if $e->type() ne "exception";
+        my $i = $self->evaler()->caller_size();
+        for ( ; $i > $saved_caller_depth ; $i-- ) {
+            $self->evaler()->pop_caller();
+        }
+        my $call_handler = Language::LispPerl::Seq->new("list");
+        $call_handler->append($handler);
+        $call_handler->append($e);
+        $self->evaler()->clear_exception();
+        return $self->evaler()->_eval($call_handler);
+    }
+    return $res;
+}
+
+sub _impl_exception_label{
+    my ($self, $ast) = @_;
+    $ast->error("exception-label expects 1 argument") if $ast->size() != 2;
+    my $e = $self->evaler()->_eval( $ast->second() );
+    $ast->error( "exception-label expects an exception as argument but got "
+                     . $e->type() )
+        if $e->type() ne "exception";
+    return Language::LispPerl::Atom->new( "string", $e->{label} );
+}
+
+sub _impl_exception_message{
+    my ($self, $ast) = @_;
+    $ast->error("exception-message expects 1 argument") if $ast->size() != 2;
+    my $e = $self->evaler()->_eval( $ast->second() );
+    $ast->error(
+        "exception-message expects an exception as argument but got "
+            . $e->type() )
+        if $e->type() ne "exception";
+    return Language::LispPerl::Atom->new( "string", $e->value() );
 }
 
 1;

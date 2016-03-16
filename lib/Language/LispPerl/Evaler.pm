@@ -50,6 +50,11 @@ has 'builtins' => ( is => 'ro', default => sub{
                         return Language::LispPerl::BuiltIns->new({ evaler => $self });
                     });
 
+sub clear_exception{
+    my ($self) = @_;
+    $self->{exception} = undef;
+}
+
 sub push_scope {
     my $self    = shift;
     my $context = shift;
@@ -84,6 +89,21 @@ sub pop_caller {
 sub caller_size {
     my $self = shift;
     scalar @{ $self->caller() };
+}
+
+=head2 copy_caller
+
+Returns a shallow copy of this caller's stack.
+
+Usage:
+
+ my $caller_stack = $this->copy_caller();
+
+=cut
+
+sub copy_caller{
+    my ($self) = @_;
+    return [ @{ $self->caller() } ];
 }
 
 sub push_namespace {
@@ -238,9 +258,21 @@ sub read {
     return $res;
 }
 
+=head2 eval
+
+Evaluates a string and returns the result of the latest expression (or dies
+with an error).
+
+Usage:
+
+ my $res = $this->eval(q|( - 1 1 ) ( + 1 2 )|);
+ # $res->value() is 3
+
+=cut
+
 sub eval {
-    my $self   = shift;
-    my $str    = shift;
+    my ($self, $str) = @_;
+
     my $reader = Language::LispPerl::Reader->new();
     $reader->read_string($str);
     my $res = undef;
@@ -708,76 +740,7 @@ sub builtin {
         return $self->builtins()->call_function( $function , $ast );
     }
 
-    if ( $fn eq "throw" ) {
-        $ast->error("throw expects 2 arguments") if $size != 3;
-        my $label = $ast->second();
-        $ast->error( "throw expects a symbol as the first argument but got "
-              . $label->type() )
-          if $label->type() ne "symbol";
-        my $msg = $self->_eval( $ast->third() );
-        $ast->error( "throw expects a string as the second argument but got "
-              . $msg->type() )
-          if $msg->type() ne "string";
-        my $e = Language::LispPerl::Atom->new( "exception", $msg->value() );
-        $e->{label} = $label->value();
-        my @caller = @{ $self->{caller} };
-        $e->{caller}       = \@caller;
-        $self->{exception} = $e;
-        die $msg->value();
-    }
-    elsif ( $fn eq "exception-label" ) {
-        $ast->error("exception-label expects 1 argument") if $size != 2;
-        my $e = $self->_eval( $ast->second() );
-        $ast->error( "exception-label expects an exception as argument but got "
-              . $e->type() )
-          if $e->type() ne "exception";
-        return Language::LispPerl::Atom->new( "string", $e->{label} );
-    }
-    elsif ( $fn eq "exception-message" ) {
-        $ast->error("exception-message expects 1 argument") if $size != 2;
-        my $e = $self->_eval( $ast->second() );
-        $ast->error(
-            "exception-message expects an exception as argument but got "
-              . $e->type() )
-          if $e->type() ne "exception";
-        return Language::LispPerl::Atom->new( "string", $e->value() );
-    }
-    elsif ( $fn eq "catch" ) {
-        $ast->error("catch expects 2 arguments") if $size != 3;
-        my $handler = $self->_eval( $ast->third() );
-        $ast->error(
-            "catch expects a function/lambda as the second argument but got "
-              . $handler->type() )
-          if $handler->type() ne "function";
-        my $res;
-        my $saved_caller_depth = $self->caller_size();
-        eval { $res = $self->_eval( $ast->second() ); };
-        if ($@) {
-            my $e = $self->{exception};
-            if ( !defined $e ) {
-                $e = Language::LispPerl::Atom->new( "exception", "unkown expection" );
-                $e->{label} = "undef";
-                my @ec = ();
-                $e->{caller} = \@ec;
-            }
-            $ast->error(
-                "catch expects an exception for handler but got " . $e->type() )
-              if $e->type() ne "exception";
-            my $i = $self->caller_size();
-            for ( ; $i > $saved_caller_depth ; $i-- ) {
-                $self->pop_caller();
-            }
-            my $call_handler = Language::LispPerl::Seq->new("list");
-            $call_handler->append($handler);
-            $call_handler->append($e);
-            $self->{exception} = undef;
-            return $self->_eval($call_handler);
-        }
-        return $res;
-
-        # (def ^{} name value)
-    }
-    elsif ( $fn eq "def" ) {
+    if ( $fn eq "def" ) {
         $ast->error( $fn . " expects 2 arguments" ) if $size > 4 or $size < 3;
         if ( $size == 3 ) {
             $ast->error( $fn
