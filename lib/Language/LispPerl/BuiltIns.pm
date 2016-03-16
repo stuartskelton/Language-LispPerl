@@ -20,11 +20,13 @@ has 'functions' => (
         {
             "eval"              => \&_impl_eval,
             "syntax"            => \&_impl_syntax,
+
             "throw"             => \&_impl_throw,
             "catch"             => \&_impl_catch,
             "exception-label"   => \&_impl_exception_label,
             "exception-message" => \&_impl_exception_message,
-            # "def"               => 1,
+
+            "def"               => \&_impl_def,
             # "set!"              => 1,
             # "let"               => 1,
             # "fn"                => 1,
@@ -217,6 +219,53 @@ sub _impl_exception_message{
             . $e->type() )
         if $e->type() ne "exception";
     return Language::LispPerl::Atom->new( "string", $e->value() );
+}
+
+sub _impl_def{
+    my ($self, $ast , $symbol ) = @_;
+    my $size = $ast->size();
+
+    # Function name
+    my $function_name = $symbol->value();
+
+    $ast->error( $function_name . " expects 2 arguments" ) if $size > 4 or $size < 3;
+
+    if ( $size == 3 ) {
+        $ast->error( $function_name
+                         . " expects a symbol as the first argument but got "
+                         . $ast->second()->type() )
+            if $ast->second()->type() ne "symbol";
+        my $name = $ast->second()->value();
+        $ast->error( $name . " is a reserved word" ) if $self->evaler()->word_is_reserved( $name );
+
+        # A function is stored in a variable.
+        $self->evaler()->new_var($name);
+        my $value = $self->evaler()->_eval( $ast->third() );
+        $self->evaler()->var($name)->value($value);
+
+        return $value;
+    }
+
+    # This is a size 4
+    my $meta = $self->evaler()->_eval( $ast->second() );
+    $ast->error( $function_name
+                     . " expects a meta as the first argument but got "
+                     . $meta->type() )
+        if $meta->type() ne "meta";
+
+    $ast->error( $function_name
+                     . " expects a symbol as the first argument but got "
+                     . $ast->third()->type() )
+        if $ast->third()->type() ne "symbol";
+
+    my $name = $ast->third()->value();
+    $ast->error( $name . " is a reserved word" ) if $self->evaler()->word_is_reserved( $name );
+
+    $self->evaler()->new_var($name);
+    my $value = $self->evaler()->_eval( $ast->fourth() );
+    $value->meta($meta);
+    $self->evaler()->var($name)->value($value);
+    return $value;
 }
 
 1;

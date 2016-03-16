@@ -258,28 +258,6 @@ sub read {
     return $res;
 }
 
-=head2 eval
-
-Evaluates a string and returns the result of the latest expression (or dies
-with an error).
-
-Usage:
-
- my $res = $this->eval(q|( - 1 1 ) ( + 1 2 )|);
- # $res->value() is 3
-
-=cut
-
-sub eval {
-    my ($self, $str) = @_;
-
-    my $reader = Language::LispPerl::Reader->new();
-    $reader->read_string($str);
-    my $res = undef;
-    $reader->ast()->each( sub { $res = $self->_eval( $_[0] ) } );
-    return $res;
-}
-
 our $builtin_funcs = {
     "eval"              => 1,
     "syntax"            => 1,
@@ -355,6 +333,34 @@ our $empty_list = Language::LispPerl::Seq->new("list");
 our $true       = Language::LispPerl::Atom->new( "bool", "true" );
 our $false      = Language::LispPerl::Atom->new( "bool", "false" );
 our $nil        = Language::LispPerl::Atom->new( "nil", "nil" );
+
+=head2 eval
+
+Evaluates a string and returns the result of the latest expression (or dies
+with an error).
+
+Return the nil/nil atom when the given string is empty.
+
+Usage:
+
+ my $res = $this->eval(q|( - 1 1 ) ( + 1 2 )|);
+ # $res->value() is 3
+
+=cut
+
+sub eval {
+    my ($self, $str) = @_;
+    unless( length( $str ) ){
+        return $nil;
+    }
+
+    my $reader = Language::LispPerl::Reader->new();
+    $reader->read_string($str);
+    my $res = undef;
+    $reader->ast()->each( sub { $res = $self->_eval( $_[0] ) } );
+    return $res;
+}
+
 
 =head2 bind
 
@@ -730,6 +736,22 @@ sub _eval {
     return $ast;
 }
 
+=head2 word_is_reserved
+
+Is the given word reserved?
+Usage:
+
+ if( $this->word_is_reserved() ){
+   ...
+ }
+
+=cut
+
+sub word_is_reserved{
+    my ($self, $word ) = @_;
+    return $builtin_funcs->{$word} or $word =~ /^(\.|->)\S+$/;
+}
+
 sub builtin {
     my ($self, $f , $ast) = @_;
 
@@ -737,47 +759,10 @@ sub builtin {
     my $fn = $f->value();
 
     if( my $function = $self->builtins()->has_function( $fn ) ){
-        return $self->builtins()->call_function( $function , $ast );
+        return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn eq "def" ) {
-        $ast->error( $fn . " expects 2 arguments" ) if $size > 4 or $size < 3;
-        if ( $size == 3 ) {
-            $ast->error( $fn
-                  . " expects a symbol as the first argument but got "
-                  . $ast->second()->type() )
-              if $ast->second()->type() ne "symbol";
-            my $name = $ast->second()->value();
-            $ast->error( $name . " is a reserved word" )
-              if exists $builtin_funcs->{$name} or $name =~ /^(\.|->)\S+$/;
-            $self->new_var($name);
-            my $value = $self->_eval( $ast->third() );
-            $self->var($name)->value($value);
-            return $value;
-        }
-        else {
-            my $meta = $self->_eval( $ast->second() );
-            $ast->error( $fn
-                  . " expects a meta as the first argument but got "
-                  . $meta->type() )
-              if $meta->type() ne "meta";
-            $ast->error( $fn
-                  . " expects a symbol as the first argument but got "
-                  . $ast->third()->type() )
-              if $ast->third()->type() ne "symbol";
-            my $name = $ast->third()->value();
-            $ast->error( $name . " is a reserved word" )
-              if exists $builtin_funcs->{$name} or $name =~ /^(\.|->)\S+$/;
-            $self->new_var($name);
-            my $value = $self->_eval( $ast->fourth() );
-            $value->meta($meta);
-            $self->var($name)->value($value);
-            return $value;
-        }
-
-        # (set! name value)
-    }
-    elsif ( $fn eq "set!" ) {
+    if ( $fn eq "set!" ) {
         $ast->error( $fn . " expects 2 arguments" ) if $size != 3;
         $ast->error( $fn
               . " expects a symbol as the first argument but got "
