@@ -14,6 +14,7 @@ use File::Basename;
 use Language::LispPerl::Reader;
 use Language::LispPerl::Var;
 use Language::LispPerl::Printer;
+use Language::LispPerl::BuiltIns;
 
 use Log::Any qw/$log/;
 
@@ -42,6 +43,12 @@ has 'quotation_scope' => ( is => 'ro', default => sub{ 0; });
 has 'syntaxquotation_scope' => ( is => 'ro', default => sub{ 0; });
 
 has 'exception' => ( is => 'rw' );
+
+# The container for the builtin functions.
+has 'builtins' => ( is => 'ro', default => sub{
+                        my ($self) = @_;
+                        return Language::LispPerl::BuiltIns->new({ evaler => $self });
+                    });
 
 sub push_scope {
     my $self    = shift;
@@ -102,7 +109,7 @@ sub current_namespace {
 
 =head2 new_var
 
-From a name and a value, creates a new Language::LispPerl::Var under the
+From a name and a value, creates a new L<Language::LispPerl::Var> under the
 key 'name' in $this->current_scope();
 
 Usage:
@@ -120,6 +127,19 @@ sub new_var {
     $scope->{$name} = Language::LispPerl::Var->new({ name =>  $name, value => $value });
 }
 
+=head2 var
+
+Lookup the L<Language::LispPerl::Var> by name in the current scope or in the current namespace.
+Returns undef if no such variable is found.
+
+Usage:
+
+ if( my $var = $this->var( 'blabla' ) ){
+   ...
+ }
+
+=cut
+
 sub var {
     my $self  = shift;
     my $name  = shift;
@@ -135,6 +155,13 @@ sub var {
     }
     return undef;
 }
+
+=head2 current_file
+
+Returns the current file on the file_stack or '.' if no such thing
+exists.
+
+=cut
 
 sub current_file {
     my $self = shift;
@@ -677,18 +704,21 @@ sub builtin {
     my $ast  = shift;
     my $size = $ast->size();
 
-    #my $f = $ast->first();
     my $fn = $f->value();
 
-    # (eval "bla bla bla")
-    if ( $fn eq "eval" ) {
-        $ast->error("eval expects 1 argument") if $size != 2;
-        my $s = $ast->second();
-        $ast->error( "eval expects 1 string as argument but got " . $s->type() )
-          if $s->type() ne "string";
-        return $self->eval( $s->value() );
+    if( my $function = $self->builtins()->has_function( $fn ) ){
+        return $self->builtins()->call_function( $function , $ast );
     }
-    elsif ( $fn eq "syntax" ) {
+
+    # (eval "bla bla bla")
+    # if ( $fn eq "eval" ) {
+    #     $ast->error("eval expects 1 argument") if $size != 2;
+    #     my $s = $ast->second();
+    #     $ast->error( "eval expects 1 string as argument but got " . $s->type() )
+    #       if $s->type() ne "string";
+    #     return $self->eval( $s->value() );
+    # }
+    if ( $fn eq "syntax" ) {
         $ast->error("syntax expects 1 argument") if $size != 2;
         return $self->bind( $ast->second() );
     }
