@@ -100,13 +100,24 @@ sub current_namespace {
     return $namespace;
 }
 
+=head2 new_var
+
+From a name and a value, creates a new Language::LispPerl::Var under the
+key 'name' in $this->current_scope();
+
+Usage:
+
+ $this->new_var( 'bla' , 1 );
+
+=cut
+
 sub new_var {
     my $self  = shift;
     my $name  = shift;
     my $value = shift;
     my $scope = $self->current_scope();
     $name = $self->current_namespace() . "#" . $name;
-    $scope->{$name} = Language::LispPerl::Var->new( $name, $value );
+    $scope->{$name} = Language::LispPerl::Var->new({ name =>  $name, value => $value });
 }
 
 sub var {

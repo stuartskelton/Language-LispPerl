@@ -1,36 +1,17 @@
 package Language::LispPerl::Var;
 
+use Moo;
+
 use strict;
 use warnings;
 
-
-sub new {
-    my $class = shift;
-    my $name  = shift;
-    my $value = shift;
-    my $self  = {
-        class => $class,
-        name  => $name,
-        value => $value
-    };
-    bless $self;
-    return $self;
-}
-
-sub name {
-    my $self = shift;
-    return $self->{name};
-}
-
-sub value {
-    my $self  = shift;
-    my $value = shift;
-    if ( defined $value ) {
-        $self->{value} = $value;
-    }
-    else {
-        return $self->{value};
-    }
-}
+has 'name' => ( is => 'ro' , required => 1 );
+has 'value' => ( is => 'rw' );
 
 1;
+
+=head1 NAME
+
+Language::LispPerl::Var - A variable with a name (ro) and a value (rw)
+
+=cut
