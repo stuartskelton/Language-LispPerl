@@ -16,10 +16,17 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
 
 
 {
-    # Eval.
+    # eval
     my $res = $lisp->eval(q|( eval "( + 1 2 )" )| );
     is( $res->value() , 3 );
     throws_ok { $lisp->eval(q|( eval 1 2 3 )|); } qr/expects 1/ ;
+}
+
+{
+    # syntax
+    my $res = $lisp->eval(q|( syntax true )| );
+    is( $res->type() , 'bool' );
+    is( $res->value() , 'true' );
 }
 
 done_testing();

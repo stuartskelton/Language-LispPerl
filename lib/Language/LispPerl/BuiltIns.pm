@@ -17,7 +17,7 @@ has 'functions' => (
     default => sub {
         {
             "eval"              => \&_impl_eval,
-            # "syntax"            => \&_impl_syntax,
+            "syntax"            => \&_impl_syntax,
             # "catch"             => \&_impl_catch,
             # "exception-label"   => \&_impl_exception_label,
             # "exception-message" => 1,
@@ -128,7 +128,12 @@ sub _impl_eval{
         if $s->type() ne "string";
 
     return $self->evaler()->eval( $s->value() );
+}
 
+sub _impl_syntax{
+    my ($self, $ast) = @_;
+    $ast->error("syntax expects 1 argument") if $ast->size != 2;
+    return $self->evaler()->bind( $ast->second() );
 }
 
 1;

@@ -699,30 +699,16 @@ sub _eval {
 }
 
 sub builtin {
-    my $self = shift;
-    my $f    = shift;
-    my $ast  = shift;
-    my $size = $ast->size();
+    my ($self, $f , $ast) = @_;
 
+    my $size = $ast->size();
     my $fn = $f->value();
 
     if( my $function = $self->builtins()->has_function( $fn ) ){
         return $self->builtins()->call_function( $function , $ast );
     }
 
-    # (eval "bla bla bla")
-    # if ( $fn eq "eval" ) {
-    #     $ast->error("eval expects 1 argument") if $size != 2;
-    #     my $s = $ast->second();
-    #     $ast->error( "eval expects 1 string as argument but got " . $s->type() )
-    #       if $s->type() ne "string";
-    #     return $self->eval( $s->value() );
-    # }
-    if ( $fn eq "syntax" ) {
-        $ast->error("syntax expects 1 argument") if $size != 2;
-        return $self->bind( $ast->second() );
-    }
-    elsif ( $fn eq "throw" ) {
+    if ( $fn eq "throw" ) {
         $ast->error("throw expects 2 arguments") if $size != 3;
         my $label = $ast->second();
         $ast->error( "throw expects a symbol as the first argument but got "
