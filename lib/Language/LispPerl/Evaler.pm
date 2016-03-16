@@ -334,6 +334,8 @@ our $true       = Language::LispPerl::Atom->new( "bool", "true" );
 our $false      = Language::LispPerl::Atom->new( "bool", "false" );
 our $nil        = Language::LispPerl::Atom->new( "nil", "nil" );
 
+sub nil{ return $nil; };
+
 =head2 eval
 
 Evaluates a string and returns the result of the latest expression (or dies
@@ -762,40 +764,7 @@ sub builtin {
         return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn eq "let" ) {
-        $ast->error( $fn . " expects >=3 arguments" ) if $size < 3;
-        my $vars = $ast->second();
-        $ast->error(
-            $fn . " expects a list [name value ...] as the first argument" )
-          if $vars->type() ne "vector";
-        my $varssize = $vars->size();
-        $ast->error(
-            $fn . " expects [name value ...] pairs as the first argument" )
-          if $varssize % 2 != 0;
-        my $varvs = $vars->value();
-        $self->push_scope( $self->current_scope() );
-        $self->push_caller($ast);
-
-        for ( my $i = 0 ; $i < $varssize ; $i += 2 ) {
-            my $n = $varvs->[$i];
-            my $v = $varvs->[ $i + 1 ];
-            $ast->error(
-                $fn . " expects a symbol as name but got " . $n->type() )
-              if $n->type() ne "symbol";
-            $self->new_var( $n->value(), $self->_eval($v) );
-        }
-        my @body = $ast->slice( 2 .. $size - 1 );
-        my $res  = $nil;
-        foreach my $b (@body) {
-            $res = $self->_eval($b);
-        }
-        $self->pop_scope();
-        $self->pop_caller();
-        return $res;
-
-        # (fn [args ...] body)
-    }
-    elsif ( $fn eq "fn" ) {
+    if ( $fn eq "fn" ) {
         $ast->error("fn expects >= 3 arguments") if $size < 3;
         my $args     = $ast->second();
         my $argstype = $args->type();

@@ -30,7 +30,8 @@ has 'functions' => (
             # Variable stuff (booo)
             "def"               => \&_impl_def,
             "set!"              => \&_impl_set_bang,
-            # "let"               => 1,
+            "let"               => \&_impl_let,
+
             # "fn"                => 1,
             # "defmacro"          => 1,
             # "gen-sym"           => 1,
@@ -288,6 +289,49 @@ sub _impl_set_bang{
 
     $self->evaler()->var($name)->value($value);
     return $value;
+}
+
+sub _impl_let{
+    my ($self, $ast, $symbol) = @_;
+
+    my $function_name = $symbol->value();
+
+    $ast->error( $function_name . " expects >=3 arguments" ) if $ast->size < 3;
+
+    my $vars = $ast->second();
+    $ast->error(
+        $function_name . " expects a list [name value ...] as the first argument" )
+        if $vars->type() ne "vector";
+    my $varssize = $vars->size();
+    $ast->error(
+        $function_name . " expects [name value ...] pairs. There is a non-even amount of things here." )
+        if $varssize % 2 != 0;
+
+    my $varvs = $vars->value();
+
+    # In a new scope, define the variables and eval the rest of the expressions.
+    # Return the latest evaluated value.
+    $self->evaler()->push_scope( $self->evaler()->current_scope() );
+    $self->evaler()->push_caller($ast);
+
+    for ( my $i = 0 ; $i < $varssize ; $i += 2 ) {
+        my $n = $varvs->[$i];
+        my $v = $varvs->[ $i + 1 ];
+        $ast->error(
+            $function_name . " expects a symbol as name but got " . $n->type() )
+            if $n->type() ne "symbol";
+        $self->evaler()->new_var( $n->value(), $self->evaler()->_eval($v) );
+    }
+
+    my @body = $ast->slice( 2 .. $ast->size - 1 );
+    my $res  = $self->evaler()->nil();
+    foreach my $b (@body) {
+        $res = $self->evaler()->_eval($b);
+    }
+    $self->evaler()->pop_scope();
+    $self->evaler()->pop_caller();
+
+    return $res;
 }
 
 1;

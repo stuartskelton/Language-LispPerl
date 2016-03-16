@@ -74,7 +74,13 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     is( $lisp->var('foo')->name(), '#foo' );
     is( $lisp->var('foo')->value()->type(), 'string');
     is( $lisp->var('foo')->value()->value(), 'baz');
+}
 
+{
+    # let
+    ok( my $res = $lisp->eval(q|( let [ a 1 b 2 ] ( - a b ) ( + a b ) )|) );
+    is( $res->type() , 'number' );
+    is( $res->value() , 3 );
 }
 
 done_testing();
