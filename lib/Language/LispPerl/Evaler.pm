@@ -3,6 +3,8 @@ package Language::LispPerl::Evaler;
 use strict;
 use warnings;
 
+use Moo;
+
 use Coro;
 
 use File::ShareDir;
@@ -28,30 +30,18 @@ BEGIN{
 
 our $namespace_key = "0namespace0";
 
-sub new {
-    my $class             = shift;
-    my @default_namespace = ();
-    my @scopes            = ( { $namespace_key => \@default_namespace } );
-    my @file_stack        = ();
-    my @caller            = ();
-    my $self              = {
-        class                 => $class,
-        scopes                => \@scopes,
-        loaded_files          => {},
-        file_stack            => \@file_stack,
-        caller                => \@caller,
-        exception             => undef,
-        quotation_scope       => 0,
-        syntaxquotation_scope => 0
-    };
-    bless $self;
-    return $self;
-}
+has 'scopes' => ( is => 'ro', default => sub{
+                      return [ { $namespace_key => [] } ]
+                  });
+has 'loaded_files' => ( is => 'ro', default => sub{ {}; } );
 
-sub scopes {
-    my $self = shift;
-    return $self->{scopes};
-}
+has 'file_stack' => ( is => 'ro',  default => sub{ []; } );
+has 'caller' => ( is => 'ro' , default => sub{ []; } );
+
+has 'quotation_scope' => ( is => 'ro', default => sub{ 0; });
+has 'syntaxquotation_scope' => ( is => 'ro', default => sub{ 0; });
+
+has 'exception' => ( is => 'rw' );
 
 sub push_scope {
     my $self    = shift;
@@ -76,17 +66,17 @@ sub current_scope {
 sub push_caller {
     my $self = shift;
     my $ast  = shift;
-    unshift @{ $self->{caller} }, $ast;
+    unshift @{ $self->caller() }, $ast;
 }
 
 sub pop_caller {
     my $self = shift;
-    shift @{ $self->{caller} };
+    shift @{ $self->caller() };
 }
 
 sub caller_size {
     my $self = shift;
-    scalar @{ $self->{caller} };
+    scalar @{ $self->caller() };
 }
 
 sub push_namespace {
@@ -289,10 +279,19 @@ our $builtin_funcs = {
     "trace-vars"        => 1
 };
 
+
+
 our $empty_list = Language::LispPerl::Seq->new("list");
 our $true       = Language::LispPerl::Atom->new( "bool", "true" );
 our $false      = Language::LispPerl::Atom->new( "bool", "false" );
 our $nil        = Language::LispPerl::Atom->new( "nil", "nil" );
+
+=head2 bind
+
+Associate the current L<Language::LispPerl::Atom> or L<Language::LispPerl::Seq>
+with the correct Perl/Lisp space values.
+
+=cut
 
 sub bind {
     my $self  = shift;
