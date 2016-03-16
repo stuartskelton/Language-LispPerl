@@ -762,20 +762,7 @@ sub builtin {
         return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn eq "set!" ) {
-        $ast->error( $fn . " expects 2 arguments" ) if $size != 3;
-        $ast->error( $fn
-              . " expects a symbol as the first argument but got "
-              . $ast->second()->type() )
-          if $ast->second()->type() ne "symbol";
-        my $name = $ast->second()->value();
-        $ast->error( "undefine variable " . $name )
-          if !defined $self->var($name);
-        my $value = $self->_eval( $ast->third() );
-        $self->var($name)->value($value);
-        return $value;
-    }
-    elsif ( $fn eq "let" ) {
+    if ( $fn eq "let" ) {
         $ast->error( $fn . " expects >=3 arguments" ) if $size < 3;
         my $vars = $ast->second();
         $ast->error(

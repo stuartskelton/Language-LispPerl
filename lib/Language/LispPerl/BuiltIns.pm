@@ -21,13 +21,15 @@ has 'functions' => (
             "eval"              => \&_impl_eval,
             "syntax"            => \&_impl_syntax,
 
+            # Exception stuff
             "throw"             => \&_impl_throw,
             "catch"             => \&_impl_catch,
             "exception-label"   => \&_impl_exception_label,
             "exception-message" => \&_impl_exception_message,
 
+            # Variable stuff (booo)
             "def"               => \&_impl_def,
-            # "set!"              => 1,
+            "set!"              => \&_impl_set_bang,
             # "let"               => 1,
             # "fn"                => 1,
             # "defmacro"          => 1,
@@ -264,6 +266,26 @@ sub _impl_def{
     $self->evaler()->new_var($name);
     my $value = $self->evaler()->_eval( $ast->fourth() );
     $value->meta($meta);
+    $self->evaler()->var($name)->value($value);
+    return $value;
+}
+
+sub _impl_set_bang{
+    my ($self, $ast, $symbol) = @_;
+
+    my $function_name = $symbol->value();
+
+    $ast->error( $function_name . " expects 2 arguments" ) if $ast->size() != 3;
+    $ast->error( $function_name
+                     . " expects a symbol as the first argument but got "
+                     . $ast->second()->type() )
+        if $ast->second()->type() ne "symbol";
+
+    my $name = $ast->second()->value();
+    $ast->error( "undefined variable " . $name )
+        if !defined $self->evaler()->var($name);
+    my $value = $self->evaler->_eval( $ast->third() );
+
     $self->evaler()->var($name)->value($value);
     return $value;
 }

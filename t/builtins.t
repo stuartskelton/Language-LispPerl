@@ -55,7 +55,7 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
 }
 
 {
-    # Def
+    # Def, set
     ok( $lisp->eval(q|(def somename true)|) );
     is( $lisp->var('somename')->name(), '#somename' );
     is( $lisp->var('somename')->value()->type(), 'bool');
@@ -69,6 +69,12 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     is( $lisp->var('foo')->value()->meta()->type() , "meta");
     is( $lisp->var('foo')->value()->meta()->value()->{k}->type , "string");
     is( $lisp->var('foo')->value()->meta()->value()->{k}->value , "v");
+
+    ok( $lisp->eval(q|(set! foo "baz")|) );
+    is( $lisp->var('foo')->name(), '#foo' );
+    is( $lisp->var('foo')->value()->type(), 'string');
+    is( $lisp->var('foo')->value()->value(), 'baz');
+
 }
 
 done_testing();
