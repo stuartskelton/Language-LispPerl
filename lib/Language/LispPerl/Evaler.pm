@@ -783,19 +783,7 @@ sub builtin {
         return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn eq "require" ) {
-        $ast->error("require expects 1 argument") if $size != 2;
-        my $m = $ast->second();
-        if ( $m->type() eq "symbol" or $m->type() eq "keyword" ) {
-        }
-        else {
-            $m = $self->_eval($m);
-            $ast->error( "require expects a string but got " . $m->type() )
-              if $m->type() ne "string";
-        }
-        return $self->load( $m->value() );
-    }
-    elsif ( $fn eq "read" ) {
+    if ( $fn eq "read" ) {
         $ast->error("read expects 1 argument") if $size != 2;
         my $f = $self->_eval( $ast->second() );
         $ast->error( "read expects a string but got " . $f->type() )

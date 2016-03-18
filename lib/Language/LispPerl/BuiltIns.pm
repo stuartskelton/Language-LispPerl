@@ -78,7 +78,7 @@ has 'functions' => (
             # "and"               => 1,
             # "or"                => 1,
             # "equal"             => 1,
-            # "require"           => 1,
+            "require"           => \&_impl_require,
             # "read"              => 1,
             # "println"           => 1,
             # "coro"              => 1,
@@ -415,6 +415,21 @@ sub _impl_gen_sym{
         $s->value( $s->object_id() );
     }
     return $s;
+}
+
+sub _impl_require{
+    my ($self, $ast) = @_;
+    unless( $ast ){
+        confess("NO AST");
+    }
+    $ast->error("require expects 1 argument") if $ast->size() != 2;
+    my $m = $ast->second();
+    unless ( $m->type() eq "symbol" or $m->type() eq "keyword" ) {
+        $m = $self->evaler->_eval($m);
+        $ast->error( "require expects a string but got " . $m->type() )
+            if $m->type() ne "string";
+    }
+    return $self->evaler()->load( $m->value() );
 }
 
 1;

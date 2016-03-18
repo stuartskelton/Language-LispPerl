@@ -107,4 +107,11 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     like( $res->value() , qr/^baconatom/ );
 }
 
+{
+    # require
+    ok( my $res = $lisp->eval(q|(require "core.clp")|) );
+    is( $res->type() , 'macro');
+    ok( $res->value()->isa('Language::LispPerl::Seq') );
+}
+
 done_testing();
