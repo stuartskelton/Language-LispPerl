@@ -37,7 +37,7 @@ has 'functions' => (
 
             # Define macros
             "defmacro"          => \&_impl_defmacro,
-            # "gen-sym"           => 1,
+            "gen-sym"           => \&_impl_gen_sym,
             # "list"              => 1,
             # "car"               => 1,
             # "cdr"               => 1,
@@ -399,6 +399,22 @@ sub _impl_defmacro{
 
     $self->evaler()->new_var( $name, $nast );
     return $nast;
+}
+
+sub _impl_gen_sym{
+    my ($self, $ast, $symbol) = @_;
+    $ast->error("gen-sym expects 0/1 argument") if $ast->size > 2;
+    my $s = Language::LispPerl::Atom->new("symbol");
+    if ( $ast->size() == 2 ) {
+        my $pre = $self->evaler()->_eval( $ast->second() );
+        $ast->("gen-sym expects string as argument")
+            if $pre->type ne "string";
+        $s->value( $pre->value() . $s->object_id() );
+    }
+    else {
+        $s->value( $s->object_id() );
+    }
+    return $s;
 }
 
 1;

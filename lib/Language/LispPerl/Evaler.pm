@@ -783,23 +783,7 @@ sub builtin {
         return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn eq "gen-sym" ) {
-        $ast->error("gen-sym expects 0/1 argument") if $size > 2;
-        my $s = Language::LispPerl::Atom->new("symbol");
-        if ( $size == 2 ) {
-            my $pre = $self->_eval( $ast->second() );
-            $ast->("gen-sym expects string as argument")
-              if $pre->type ne "string";
-            $s->value( $pre->value() . $s->object_id() );
-        }
-        else {
-            $s->value( $s->object_id() );
-        }
-        return $s;
-
-        # (require "filename")
-    }
-    elsif ( $fn eq "require" ) {
+    if ( $fn eq "require" ) {
         $ast->error("require expects 1 argument") if $size != 2;
         my $m = $ast->second();
         if ( $m->type() eq "symbol" or $m->type() eq "keyword" ) {

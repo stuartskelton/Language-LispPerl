@@ -100,4 +100,11 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     is( $res->value() , 3 );
 }
 
+{
+    # gen-sym
+    ok( my $res = $lisp->eval(q|( gen-sym "bacon" )|) );
+    is( $res->type() , 'symbol');
+    like( $res->value() , qr/^baconatom/ );
+}
+
 done_testing();
