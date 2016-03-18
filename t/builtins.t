@@ -83,4 +83,11 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     is( $res->value() , 3 );
 }
 
+{
+    # fn
+    ok( my $res = $lisp->eval(q|( (fn [a  b] ( + a b ) ) 1 2 )|) );
+    is( $res->type() , 'number' );
+    is( $res->value() , 3 );
+}
+
 done_testing();

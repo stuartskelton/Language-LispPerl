@@ -106,6 +106,25 @@ sub copy_caller{
     return [ @{ $self->caller() } ];
 }
 
+=head2 copy_current_scope
+
+Take a shallow copy of the current scope that
+is adequate for function and macro contexts
+
+=cut
+
+sub copy_current_scope{
+    my ($self) = @_;
+    # Take a shallow copy of the current_scope
+    my %c    = %{ $self->current_scope() };
+
+    # Take a shallow copy of the namespace (keyed by namespace_key)
+    my @ns   = @{ $c{$namespace_key} };
+    $c{$namespace_key} = \@ns;
+
+    return \%c;
+}
+
 sub push_namespace {
     my $self      = shift;
     my $namespace = shift;
@@ -764,39 +783,7 @@ sub builtin {
         return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn eq "fn" ) {
-        $ast->error("fn expects >= 3 arguments") if $size < 3;
-        my $args     = $ast->second();
-        my $argstype = $args->type();
-        $ast->error("fn expects [arg ...] as formal argument list")
-          if $argstype ne "vector";
-        my $argsvalue = $args->value();
-        my $argssize  = $args->size();
-        my $i         = 0;
-        foreach my $arg ( @{$argsvalue} ) {
-            $arg->error(
-                "formal argument should be a symbol but got " . $arg->type() )
-              if $arg->type() ne "symbol";
-            if (
-                $arg->value() eq "&"
-                and (  $argssize != $i + 2
-                    or $argsvalue->[ $i + 1 ]->value() eq "&" )
-              )
-            {
-                $arg->error("only 1 non-& should follow &");
-            }
-            $i++;
-        }
-        my $nast = Language::LispPerl::Atom->new( "function", $ast );
-        my %c    = %{ $self->current_scope() };
-        my @ns   = @{ $c{$namespace_key} };
-        $c{$namespace_key} = \@ns;
-        $nast->{context} = \%c;
-        return $nast;
-
-        # (defmacro name [args ...] body)
-    }
-    elsif ( $fn eq "defmacro" ) {
+    if ( $fn eq "defmacro" ) {
         $ast->error("defmacro expects >= 4 arguments") if $size < 4;
         my $name = $ast->second()->value();
         my $args = $ast->third();

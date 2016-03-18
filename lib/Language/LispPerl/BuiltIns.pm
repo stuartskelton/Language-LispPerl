@@ -32,7 +32,8 @@ has 'functions' => (
             "set!"              => \&_impl_set_bang,
             "let"               => \&_impl_let,
 
-            # "fn"                => 1,
+            # A pure function
+            "fn"                => \&_impl_fn,
             # "defmacro"          => 1,
             # "gen-sym"           => 1,
             # "list"              => 1,
@@ -332,6 +333,40 @@ sub _impl_let{
     $self->evaler()->pop_caller();
 
     return $res;
+}
+
+sub _impl_fn{
+    my ($self, $ast, $symbol) = @_;
+    $ast->error("fn expects >= 3 arguments") if $ast->size < 3;
+
+    my $args     = $ast->second();
+    my $argstype = $args->type();
+    $ast->error("fn expects [arg ...] as formal argument list")
+        if $argstype ne "vector";
+
+    my $argsvalue = $args->value();
+    my $argssize  = $args->size();
+    my $i         = 0;
+    foreach my $arg ( @{$argsvalue} ) {
+        $arg->error(
+            "formal argument should be a symbol but got " . $arg->type() )
+            if $arg->type() ne "symbol";
+        if (
+            $arg->value() eq "&"
+                and (  $argssize != $i + 2
+                       or $argsvalue->[ $i + 1 ]->value() eq "&" )
+            )
+            {
+                $arg->error("only 1 non-& should follow &");
+            }
+        $i++;
+    }
+
+    my $nast = Language::LispPerl::Atom->new( "function", $ast );
+
+    $nast->{context} = $self->evaler()->copy_current_scope();
+
+    return $nast;
 }
 
 1;
