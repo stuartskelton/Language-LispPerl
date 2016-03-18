@@ -90,4 +90,14 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     is( $res->value() , 3 );
 }
 
+{
+    # defmacro
+    ok( my $res = $lisp->eval(q|(defmacro addition [a b] ( + a b ) )|) );
+    is( $res->type() , 'macro' );
+    ok( $res->value()->isa('Language::LispPerl::Seq') );
+    ok( $res = $lisp->eval(q|( addition 1 2 )| ) );
+    is( $res->type() , 'number' );
+    is( $res->value() , 3 );
+}
+
 done_testing();

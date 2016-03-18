@@ -783,38 +783,7 @@ sub builtin {
         return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn eq "defmacro" ) {
-        $ast->error("defmacro expects >= 4 arguments") if $size < 4;
-        my $name = $ast->second()->value();
-        my $args = $ast->third();
-        $ast->error("defmacro expect [arg ...] as formal argument list")
-          if $args->type() ne "vector";
-        my $i = 0;
-        foreach my $arg ( @{ $args->value() } ) {
-            $arg->error(
-                "formal argument should be a symbol but got " . $arg->type() )
-              if $arg->type() ne "symbol";
-            if (
-                $arg->value() eq "&"
-                and (  $args->size() != $i + 2
-                    or $args->value()->[ $i + 1 ]->value() eq "&" )
-              )
-            {
-                $arg->error("only 1 non-& should follow &");
-            }
-            $i++;
-        }
-        my $nast = Language::LispPerl::Atom->new( "macro", $ast );
-        my %c    = %{ $self->current_scope() };
-        my @ns   = @{ $c{$namespace_key} };
-        $c{$namespace_key} = \@ns;
-        $nast->{context} = \%c;
-        $self->new_var( $name, $nast );
-        return $nast;
-
-        # (gen-sym)
-    }
-    elsif ( $fn eq "gen-sym" ) {
+    if ( $fn eq "gen-sym" ) {
         $ast->error("gen-sym expects 0/1 argument") if $size > 2;
         my $s = Language::LispPerl::Atom->new("symbol");
         if ( $size == 2 ) {

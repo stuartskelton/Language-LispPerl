@@ -34,7 +34,9 @@ has 'functions' => (
 
             # A pure function
             "fn"                => \&_impl_fn,
-            # "defmacro"          => 1,
+
+            # Define macros
+            "defmacro"          => \&_impl_defmacro,
             # "gen-sym"           => 1,
             # "list"              => 1,
             # "car"               => 1,
@@ -366,6 +368,36 @@ sub _impl_fn{
 
     $nast->{context} = $self->evaler()->copy_current_scope();
 
+    return $nast;
+}
+
+sub _impl_defmacro{
+    my ($self, $ast, $symbol) = @_;
+    $ast->error("defmacro expects >= 4 arguments") if $ast->size < 4;
+    my $name = $ast->second()->value();
+    my $args = $ast->third();
+    $ast->error("defmacro expect [arg ...] as formal argument list")
+        if $args->type() ne "vector";
+    my $i = 0;
+    foreach my $arg ( @{ $args->value() } ) {
+        $arg->error(
+            "formal argument should be a symbol but got " . $arg->type() )
+            if $arg->type() ne "symbol";
+        if (
+            $arg->value() eq "&"
+                and (  $args->size() != $i + 2
+                       or $args->value()->[ $i + 1 ]->value() eq "&" )
+            )
+            {
+                $arg->error("only 1 non-& should follow &");
+            }
+        $i++;
+    }
+    my $nast = Language::LispPerl::Atom->new( "macro", $ast );
+
+    $nast->{context} = $self->evaler()->copy_current_scope();
+
+    $self->evaler()->new_var( $name, $nast );
     return $nast;
 }
 
