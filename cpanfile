@@ -6,5 +6,5 @@ requires 'Log::Any';
 requires 'Moo' , '>=  2.000002';
 
 test_requires 'File::Share';
+test_requires 'File::Temp';
 test_requires 'Test::Exception';
-

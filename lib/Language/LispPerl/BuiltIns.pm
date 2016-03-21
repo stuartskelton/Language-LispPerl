@@ -78,8 +78,10 @@ has 'functions' => (
             # "and"               => 1,
             # "or"                => 1,
             # "equal"             => 1,
+
+            # File operations.
             "require"           => \&_impl_require,
-            # "read"              => 1,
+            "read"              => \&_impl_read,
             # "println"           => 1,
             # "coro"              => 1,
             # "coro-suspend"      => 1,
@@ -430,6 +432,15 @@ sub _impl_require{
             if $m->type() ne "string";
     }
     return $self->evaler()->load( $m->value() );
+}
+
+sub _impl_read{
+    my ($self, $ast) = @_;
+    $ast->error("read expects 1 argument") if $ast->size() != 2;
+    my $f = $self->evaler()->_eval( $ast->second() );
+    $ast->error( "read expects a string but got " . $f->type() )
+        if $f->type() ne "string";
+    return $self->evaler()->read( $f->value() );
 }
 
 1;

@@ -3,6 +3,8 @@
 use strict;
 use warnings;
 
+use File::Temp;
+
 use Test::More;
 use Test::Exception;
 
@@ -112,6 +114,16 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     ok( my $res = $lisp->eval(q|(require "core.clp")|) );
     is( $res->type() , 'macro');
     ok( $res->value()->isa('Language::LispPerl::Seq') );
+}
+
+{
+    # read
+    my ($fh, $filename) = File::Temp::tempfile();
+    print $fh q|(+ 1 2) (+ 3 4)|;
+    close($fh);
+    ok( my $res = $lisp->eval('(read "'.$filename.'")') );
+    is( $res->type() , 'number' );
+    is( $res->value() , 7 );
 }
 
 done_testing();

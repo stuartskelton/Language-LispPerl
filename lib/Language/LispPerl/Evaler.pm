@@ -267,6 +267,18 @@ sub load {
     return $res;
 }
 
+=head2 read
+
+Reads and evaluates in this evaler
+all the expressions in the given filename
+and returns the last evaluation result.
+
+Usage:
+
+ $this->read('/path/to/file');
+
+=cut
+
 sub read {
     my $self   = shift;
     my $file   = shift;
@@ -783,16 +795,7 @@ sub builtin {
         return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn eq "read" ) {
-        $ast->error("read expects 1 argument") if $size != 2;
-        my $f = $self->_eval( $ast->second() );
-        $ast->error( "read expects a string but got " . $f->type() )
-          if $f->type() ne "string";
-        return $self->read( $f->value() );
-
-        # (list 'a 'b 'c)
-    }
-    elsif ( $fn eq "list" ) {
+    if ( $fn eq "list" ) {
         return $empty_list if $size == 1;
         my @vs = $ast->slice( 1 .. $size - 1 );
         my $r  = Language::LispPerl::Seq->new("list");
@@ -800,8 +803,6 @@ sub builtin {
             $r->append( $self->_eval($i) );
         }
         return $r;
-
-        # (car list)
     }
     elsif ( $fn eq "car" ) {
         $ast->error("car expects 1 argument") if $size != 2;
