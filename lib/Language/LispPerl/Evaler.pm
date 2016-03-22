@@ -365,7 +365,8 @@ our $true       = Language::LispPerl::Atom->new( "bool", "true" );
 our $false      = Language::LispPerl::Atom->new( "bool", "false" );
 our $nil        = Language::LispPerl::Atom->new( "nil", "nil" );
 
-sub nil{ return $nil; };
+sub nil{ return $nil; }
+sub empty_list{ return $empty_list; }
 
 =head2 eval
 
@@ -795,55 +796,7 @@ sub builtin {
         return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn eq "list" ) {
-        return $empty_list if $size == 1;
-        my @vs = $ast->slice( 1 .. $size - 1 );
-        my $r  = Language::LispPerl::Seq->new("list");
-        foreach my $i (@vs) {
-            $r->append( $self->_eval($i) );
-        }
-        return $r;
-    }
-    elsif ( $fn eq "car" ) {
-        $ast->error("car expects 1 argument") if $size != 2;
-        my $v = $self->_eval( $ast->second() );
-        $ast->error( "car expects 1 list as argument but got " . $v->type() )
-          if $v->type() ne "list";
-        my $fv = $v->first();
-        return $fv;
-
-        # (cdr list)
-    }
-    elsif ( $fn eq "cdr" ) {
-        $ast->error("cdr expects 1 argument") if $size != 2;
-        my $v = $self->_eval( $ast->second() );
-        $ast->error( "cdr expects 1 list as argument but got " . $v->type() )
-          if $v->type() ne "list";
-        return $empty_list if ( $v->size() == 0 );
-        my @vs = $v->slice( 1 .. $v->size() - 1 );
-        my $r  = Language::LispPerl::Seq->new("list");
-        $r->value( \@vs );
-        return $r;
-
-        # (cons item list)
-    }
-    elsif ( $fn eq "cons" ) {
-        $ast->error("cons expects 2 arguments") if $size != 3;
-        my $fv  = $self->_eval( $ast->second() );
-        my $rvs = $self->_eval( $ast->third() );
-        $ast->error( "cons expects 1 list as the second argument but got "
-              . $rvs->type() )
-          if $rvs->type() ne "list";
-        my @vs = ();
-        @vs = $rvs->slice( 0 .. $rvs->size() - 1 ) if $rvs->size() > 0;
-        unshift @vs, $fv;
-        my $r = Language::LispPerl::Seq->new("list");
-        $r->value( \@vs );
-        return $r;
-
-        # (if cond true_clause false_clause)
-    }
-    elsif ( $fn eq "if" ) {
+    if ( $fn eq "if" ) {
         $ast->error("if expects 2 or 3 arguments") if $size > 4 or $size < 3;
         my $cond = $self->_eval( $ast->second() );
         $ast->error(

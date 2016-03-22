@@ -126,4 +126,24 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     is( $res->value() , 7 );
 }
 
+{
+    # Lists
+    ok( my $res = $lisp->eval('( list 1 2 3 4 )') );
+    is( $res->type() , 'list' );
+    is( ref( $res->value() ) , 'ARRAY' );
+    is( ref( $res->value()->[0] ) , 'Language::LispPerl::Atom' );
+
+    ok( $res = $lisp->eval('( car ( list 3 2 1 ) )') );
+    is( $res->type(), 'number' );
+    is( $res->value() , 3 );
+
+    ok( $res = $lisp->eval('( cdr ( list  3 2 1 ) )') );
+    is( ref( $res->value() ) , 'ARRAY' );
+    is( scalar( @{$res->value()} ) , 2 );
+
+    ok( $res = $lisp->eval('( cons 1 (list 2 3) )') );
+    is( ref($res->value() ) , 'ARRAY' );
+    is( scalar( @{$res->value()} ) , 3 );
+}
+
 done_testing();

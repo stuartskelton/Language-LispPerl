@@ -38,10 +38,13 @@ has 'functions' => (
             # Define macros
             "defmacro"          => \&_impl_defmacro,
             "gen-sym"           => \&_impl_gen_sym,
-            # "list"              => 1,
-            # "car"               => 1,
-            # "cdr"               => 1,
-            # "cons"              => 1,
+
+            # List stuff
+            "list"              => \&_impl_list,
+            "car"               => \&_impl_car,
+            "cdr"               => \&_impl_cdr,
+            "cons"              => \&_impl_cons,
+
             # "if"                => 1,
             # "while"             => 1,
             # "begin"             => 1,
@@ -441,6 +444,56 @@ sub _impl_read{
     $ast->error( "read expects a string but got " . $f->type() )
         if $f->type() ne "string";
     return $self->evaler()->read( $f->value() );
+}
+
+sub _impl_list{
+    my ($self, $ast) = @_;
+    return $self->evaler()->empty_list() if $ast->size == 1;
+    my @vs = $ast->slice( 1 .. $ast->size - 1 );
+    my $r  = Language::LispPerl::Seq->new("list");
+    foreach my $i (@vs) {
+        $r->append( $self->evaler()->_eval($i) );
+    }
+    return $r;
+}
+
+sub _impl_car{
+    my ($self, $ast) = @_;
+    $ast->error("car expects 1 argument") if $ast->size != 2;
+    my $v = $self->evaler->_eval( $ast->second() );
+    $ast->error( "car expects 1 list as argument but got " . $v->type() )
+        if $v->type() ne "list";
+    my $fv = $v->first();
+    return $fv;
+}
+
+sub _impl_cdr{
+    my ($self, $ast) = @_;
+    $ast->error("cdr expects 1 argument") if $ast->size != 2;
+    my $v = $self->evaler()->_eval( $ast->second() );
+    $ast->error( "cdr expects 1 list as argument but got " . $v->type() )
+        if $v->type() ne "list";
+    return $self->evaler()->empty_list() if ( $v->size() == 0 );
+    my @vs = $v->slice( 1 .. $v->size() - 1 );
+    my $r  = Language::LispPerl::Seq->new("list");
+    $r->value( \@vs );
+    return $r;
+}
+
+sub _impl_cons{
+    my ($self, $ast) = @_;
+    $ast->error("cons expects 2 arguments") if $ast->size != 3;
+    my $fv  = $self->evaler()->_eval( $ast->second() );
+    my $rvs = $self->evaler()->_eval( $ast->third() );
+    $ast->error( "cons expects 1 list as the second argument but got "
+                     . $rvs->type() )
+        if $rvs->type() ne "list";
+    my @vs = ();
+    @vs = $rvs->slice( 0 .. $rvs->size() - 1 ) if $rvs->size() > 0;
+    unshift @vs, $fv;
+    my $r = Language::LispPerl::Seq->new("list");
+    $r->value( \@vs );
+    return $r;
 }
 
 1;
