@@ -62,8 +62,6 @@ has 'functions' => (
             # "namespace-end"     => 1,
             # "perl->clj"         => 1,
             # "clj->string"       => 1,
-            # "!"                 => 1,
-            # "not"               => 1,
 
             # Numeric binary functions
             "+"                 => \&_impl_num_bin,
@@ -87,8 +85,11 @@ has 'functions' => (
             "lt"                => \&_impl_str_bool,
             "gt"                => \&_impl_str_bool,
 
-            # "and"               => 1,
-            # "or"                => 1,
+            # Logic stuff.
+            "!"                 => \&_impl_not,
+            "not"               => \&_impl_not,
+            "and"               => \&_impl_and,
+            "or"                => \&_impl_or,
 
             # General purpose equal function
             "equal"             => \&_impl_equal,
@@ -665,6 +666,53 @@ sub _impl_equal{
     }
 
     return ( $v1->value() eq $v2->value() ) ? $self->evaler()->true() : $self->evaler()->false();
+}
+
+
+sub _impl_not{
+    my ($self, $ast) = @_;
+    $ast->error("!/not expects 1 argument") if $ast->size != 2;
+    my $v = $self->evaler()->_eval( $ast->second() );
+    $ast->error(
+        "!/not expects a bool as the first argument but got " . $v->type() )
+        if $v->type() ne "bool";
+    return $v->value() eq 'true' ? $self->evaler()->false() : $self->evaler()->true();
+}
+
+sub _impl_and{
+    my ($self, $ast, $symbol) = @_;
+    my $fn = $symbol->value();
+    $ast->error( $fn . " expects 2 arguments" ) if $ast->size() != 3;
+    my $v1 = $self->evaler()->_eval( $ast->second() );
+    $ast->error( $fn . " expects bool as arguments but got " . $v1->type() )
+        if $v1->type() ne "bool";
+
+    return $self->evaler()->false() if $v1->value() eq "false";
+
+    # First argument is true, we need to evaluate the second one.
+    my $v2 = $self->evaler()->_eval( $ast->third() );
+    $ast->error( $fn . " expects bool as arguments but got " . $v2->type() )
+        if $v2->type() ne "bool";
+
+    return $v2->value() eq 'true' ? $self->evaler()->true() : $self->evaler()->false();
+}
+
+sub _impl_or{
+    my ($self, $ast, $symbol) = @_;
+    my $fn = $symbol->value();
+    $ast->error( $fn . " expects 2 arguments" ) if $ast->size() != 3;
+    my $v1 = $self->evaler()->_eval( $ast->second() );
+    $ast->error( $fn . " expects bool as arguments but got " . $v1->type() )
+        if $v1->type() ne "bool";
+
+    return $self->evaler()->true() if $v1->value() eq "true";
+
+    # First argument is false. Need to eval the second one.
+    my $v2 = $self->evaler()->_eval( $ast->third() );
+    $ast->error( $fn . " expects bool as arguments but got " . $v2->type() )
+        if $v2->type() ne "bool";
+
+    return $v2->value() eq 'true' ? $self->evaler()->true() : $self->evaler()->false();
 }
 
 1;

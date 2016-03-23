@@ -202,4 +202,44 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
 
 }
 
+{
+    # Logic
+    {
+        ok( my $res = $lisp->eval(q|(not false)|) );
+        is( $res->value(), 'true' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(! true)|) );
+        is( $res->value(), 'false' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(and true true)|) );
+        is( $res->value(), 'true' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(and true false)|) );
+        is( $res->value(), 'false' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(and false true)|) );
+        is( $res->value(), 'false' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(or false true)|) );
+        is( $res->value(), 'true' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(or true true)|) );
+        is( $res->value(), 'true' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(or true false)|) );
+        is( $res->value(), 'true' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(or false false)|) );
+        is( $res->value(), 'false' );
+    }
+}
+
 done_testing();

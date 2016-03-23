@@ -811,55 +811,6 @@ sub builtin {
 
         # eq ne for string comparing
     }
-    elsif ( $fn eq "!" or $fn eq "not" ) {
-        $ast->error("!/not expects 1 argument") if $size != 2;
-        my $v = $self->_eval( $ast->second() );
-        $ast->error(
-            "!/not expects a bool as the first argument but got " . $v->type() )
-          if $v->type() ne "bool";
-        if ( $v->value() eq "true" ) {
-            return $false;
-        }
-        else {
-            return $true;
-        }
-
-        # (and/or true_or_false true_or_false)
-    }
-    elsif ( $fn eq "and" ) {
-        $ast->error( $fn . " expects 2 arguments" ) if $size != 3;
-        my $v1 = $self->_eval( $ast->second() );
-        $ast->error( $fn . " expects bool as arguments but got " . $v1->type() )
-          if $v1->type() ne "bool";
-        return $false if $v1->value() eq "false";
-        my $v2 = $self->_eval( $ast->third() );
-        $ast->error( $fn . " expects bool as arguments but got " . $v2->type() )
-          if $v2->type() ne "bool";
-        if ( $v2->value() eq "true" ) {
-            return $true;
-        }
-        else {
-            return $false;
-        }
-    }
-    elsif ( $fn eq "or" ) {
-        $ast->error( $fn . " expects 2 arguments" ) if $size != 3;
-        my $v1 = $self->_eval( $ast->second() );
-        $ast->error( $fn . " expects bool as arguments but got " . $v1->type() )
-          if $v1->type() ne "bool";
-        return $true if $v1->value() eq "true";
-        my $v2 = $self->_eval( $ast->third() );
-        $ast->error( $fn . " expects bool as arguments but got " . $v2->type() )
-          if $v2->type() ne "bool";
-        if ( $v2->value() eq "true" ) {
-            return $true;
-        }
-        else {
-            return $false;
-        }
-
-        # (length list_or_vector_or_xml_or_map_or_string)
-    }
     elsif ( $fn eq "length" ) {
         $ast->error("length expects 1 argument") if $size != 2;
         my $v = $self->_eval( $ast->second() );
