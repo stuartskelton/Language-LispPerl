@@ -365,6 +365,8 @@ our $true       = Language::LispPerl::Atom->new( "bool", "true" );
 our $false      = Language::LispPerl::Atom->new( "bool", "false" );
 our $nil        = Language::LispPerl::Atom->new( "nil", "nil" );
 
+sub true{ return $true; }
+sub false{ return $false; }
 sub nil{ return $nil; }
 sub empty_list{ return $empty_list; }
 
@@ -796,44 +798,7 @@ sub builtin {
         return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn =~ /^(\+|\-|\*|\/|\%)$/ ) {
-        $ast->error( $fn . " expects 2 arguments" ) if $size != 3;
-        my $v1 = $self->_eval( $ast->second() );
-        my $v2 = $self->_eval( $ast->third() );
-        $ast->error( $fn
-              . " expects number as arguments but got "
-              . $v1->type() . " and "
-              . $v2->type() )
-          if $v1->type() ne "number"
-          or $v2->type() ne "number";
-        my $vv1 = $v1->value();
-        my $vv2 = $v2->value();
-        my $r   = Language::LispPerl::Atom->new( "number", eval("$vv1 $fn $vv2") );
-        return $r;
-
-        # == > < >= <= != logic operations
-    }
-    elsif ( $fn =~ /^(==|>|<|>=|<=|!=)$/ ) {
-        $ast->error( $fn . " expects 2 arguments" ) if $size != 3;
-        my $v1 = $self->_eval( $ast->second() );
-        my $v2 = $self->_eval( $ast->third() );
-        $ast->error( $fn
-              . " expects number as arguments but got "
-              . $v1->type() . " and "
-              . $v2->type() )
-          if $v1->type() ne "number"
-          or $v2->type() ne "number";
-        my $vv1 = $v1->value();
-        my $vv2 = $v2->value();
-        my $r   = eval("$vv1 $fn $vv2");
-        if ($r) {
-            return $true;
-        }
-        else {
-            return $false;
-        }
-    }
-    elsif ( $fn eq "xml-name" ) {
+    if ( $fn eq "xml-name" ) {
         $ast->error( $fn . " expects 1 argument" ) if $size != 2;
         my $v = $self->_eval( $ast->second() );
         $ast->error( $fn . " expects xml as argument but got " . $v->type() )

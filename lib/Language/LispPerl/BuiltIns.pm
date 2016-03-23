@@ -64,17 +64,21 @@ has 'functions' => (
             # "clj->string"       => 1,
             # "!"                 => 1,
             # "not"               => 1,
-            # "+"                 => 1,
-            # "-"                 => 1,
-            # "*"                 => 1,
-            # "/"                 => 1,
-            # "%"                 => 1,
-            # "=="                => 1,
-            # "!="                => 1,
-            # ">"                 => 1,
-            # ">="                => 1,
-            # "<"                 => 1,
-            # "<="                => 1,
+
+            # Numeric binary functions
+            "+"                 => \&_impl_num_bin,
+            "-"                 => \&_impl_num_bin,
+            "*"                 => \&_impl_num_bin,
+            "/"                 => \&_impl_num_bin,
+            "%"                 => \&_impl_num_bin,
+            # Boolean binary functions
+            "=="                => \&_impl_num_bool,
+            "!="                => \&_impl_num_bool,
+            ">"                 => \&_impl_num_bool,
+            ">="                => \&_impl_num_bool,
+            "<"                 => \&_impl_num_bool,
+            "<="                => \&_impl_num_bool,
+
             # "."                 => 1,
             # "->"                => 1,
             # "eq"                => 1,
@@ -554,6 +558,56 @@ sub _impl_begin{
         $res = $self->evaler()->_eval($i);
     }
     return $res;
+}
+
+my $NUM_FUNCTIONS = {
+    '+' => sub{ shift() + shift(); },
+    '-' => sub{ shift() - shift(); },
+    '*' => sub{ shift() * shift(); },
+    '/' => sub{ shift() / shift(); },
+    '%' => sub{ shift() % shift(); },
+
+    '==' => sub{ shift() == shift(); },
+    '>'  => sub{ shift() > shift(); },
+    '<'  => sub{ shift() < shift(); },
+    '>=' => sub{ shift() >= shift(); },
+    '<=' => sub{ shift() <= shift(); },
+    '!=' => sub{ shift() != shift(); },
+};
+
+sub _impl_num_bool{
+    my ($self, $ast, $symbol) = @_;
+    my $res = $self->_impl_num_bin( $ast , $symbol );
+    if( $res->value() ){
+        return $self->evaler()->true();
+    }
+    return $self->evaler()->false();
+}
+
+# Binary numeric operators.
+sub _impl_num_bin{
+    my ($self, $ast, $symbol) = @_;
+    my $size = $ast->size();
+    my $fn = $symbol->value();
+
+    my $num_func = $NUM_FUNCTIONS->{$fn} or
+        $ast->error("Unknown numerical function $fn");
+
+    $ast->error( $fn . " expects 2 arguments" ) if $size != 3;
+    my $v1 = $self->evaler()->_eval( $ast->second() );
+    my $v2 = $self->evaler()->_eval( $ast->third() );
+
+
+    $ast->error( $fn
+                     . " expects number as arguments but got "
+                     . $v1->type() . " and "
+                     . $v2->type() )
+        if $v1->type() ne "number"
+        or $v2->type() ne "number";
+
+    my $vv1 = $v1->value();
+    my $vv2 = $v2->value();
+    return Language::LispPerl::Atom->new( "number", $num_func->( $vv1 , $vv2 ) * 1 );
 }
 
 1;
