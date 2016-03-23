@@ -811,37 +811,6 @@ sub builtin {
 
         # eq ne for string comparing
     }
-    elsif ( $fn eq "equal" ) {
-        $ast->error( $fn . " expects 2 arguments" ) if $size != 3;
-        my $v1 = $self->_eval( $ast->second() );
-        my $v2 = $self->_eval( $ast->third() );
-        my $r  = 0;
-        if ( $v1->type() ne $v2->type() ) {
-            $r = 0;
-        }
-        elsif ($v1->type() eq "string"
-            or $v1->type() eq "keyword"
-            or $v1->type() eq "quotation"
-            or $v1->type() eq "bool"
-            or $v1->type() eq "nil" )
-        {
-            $r = $v1->value() eq $v2->value();
-        }
-        elsif ( $v1->type() eq "number" ) {
-            $r = $v1->value() == $v2->value();
-        }
-        else {
-            $r = $v1->value() eq $v2->value();
-        }
-        if ($r) {
-            return $true;
-        }
-        else {
-            return $false;
-        }
-
-        # (! true_or_false)
-    }
     elsif ( $fn eq "!" or $fn eq "not" ) {
         $ast->error("!/not expects 1 argument") if $size != 2;
         my $v = $self->_eval( $ast->second() );

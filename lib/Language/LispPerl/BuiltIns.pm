@@ -89,7 +89,9 @@ has 'functions' => (
 
             # "and"               => 1,
             # "or"                => 1,
-            # "equal"             => 1,
+
+            # General purpose equal function
+            "equal"             => \&_impl_equal,
 
             # File operations.
             "require"           => \&_impl_require,
@@ -638,6 +640,31 @@ sub _impl_str_bool{
         or $v2->type() ne "string";
 
     return $str_func->($v1->value(), $v2->value()) ? $self->evaler()->true() : $self->evaler()->false();
+}
+
+sub _impl_equal{
+    my ($self, $ast, $symbol) = @_;
+    my $fn = $symbol->value();
+
+    $ast->error( $fn . " expects 2 arguments" ) if $ast->size != 3;
+    my $v1 = $self->evaler()->_eval( $ast->second() );
+    my $v2 = $self->evaler()->_eval( $ast->third() );
+
+    # Different type, FALSE
+    if ( $v1->type() ne $v2->type() ) {
+        return $self->evaler()->false();
+    }
+
+    my $type = $v1->type();
+    if( $type eq "string" or $type eq "keyword" or $type eq "quotation" or $type eq "bool" or $type eq "nil" ){
+        return ( $v1->value() eq $v2->value() ) ? $self->evaler()->true() : $self->evaler()->false() ;
+    }
+
+    if ( $type eq "number" ) {
+        return ( $v1->value() == $v2->value() ) ? $self->evaler()->true() : $self->evaler()->false();
+    }
+
+    return ( $v1->value() eq $v2->value() ) ? $self->evaler()->true() : $self->evaler()->false();
 }
 
 1;

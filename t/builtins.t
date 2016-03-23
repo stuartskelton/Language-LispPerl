@@ -177,4 +177,29 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     is( $res->value() , 'yes' );
 }
 
+{
+    # General purpose equal
+    {
+        ok( my $res = $lisp->eval(q|(equal "bla" "bla")|) );
+        is( $res->value(), 'true' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(equal "1" 1)|) );
+        is( $res->value(), 'false' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(equal 1 1)|) );
+        is( $res->value(), 'true' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(equal true true)|) );
+        is( $res->value(), 'true' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(equal true false)|) );
+        is( $res->value(), 'false' );
+    }
+
+}
+
 done_testing();
