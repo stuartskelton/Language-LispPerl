@@ -796,43 +796,7 @@ sub builtin {
         return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn eq "if" ) {
-        $ast->error("if expects 2 or 3 arguments") if $size > 4 or $size < 3;
-        my $cond = $self->_eval( $ast->second() );
-        $ast->error(
-            "if expects a bool as the first argument but got " . $cond->type() )
-          if $cond->type() ne "bool";
-        if ( $cond->value() eq "true" ) {
-            return $self->_eval( $ast->third() );
-        }
-        elsif ( $ast->size() == 4 ) {
-            return $self->_eval( $ast->fourth() );
-        }
-        else {
-            return $nil;
-        }
-
-        # (while cond body)
-    }
-    elsif ( $fn eq "while" ) {
-        $ast->error("while expects >= 2 arguments") if $size < 3;
-        my $cond = $self->_eval( $ast->second() );
-        $ast->error( "while expects a bool as the first argument but got "
-              . $cond->type() )
-          if $cond->type() ne "bool";
-        my $res  = $nil;
-        my @body = $ast->slice( 2 .. $size - 1 );
-        while ( $cond->value() eq "true" ) {
-            foreach my $i (@body) {
-                $res = $self->_eval($i);
-            }
-            $cond = $self->_eval( $ast->second() );
-        }
-        return $res;
-
-        # (begin body)
-    }
-    elsif ( $fn eq "begin" ) {
+    if ( $fn eq "begin" ) {
         $ast->error("being expects >= 1 arguments") if $size < 2;
         my $res  = $nil;
         my @body = $ast->slice( 1 .. $size - 1 );

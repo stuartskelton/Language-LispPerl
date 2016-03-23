@@ -45,8 +45,9 @@ has 'functions' => (
             "cdr"               => \&_impl_cdr,
             "cons"              => \&_impl_cons,
 
-            # "if"                => 1,
-            # "while"             => 1,
+            "if"                => \&_impl_if,
+            "while"             => \&_impl_while,
+
             # "begin"             => 1,
             # "length"            => 1,
             # "reverse"           => 1,
@@ -494,6 +495,53 @@ sub _impl_cons{
     my $r = Language::LispPerl::Seq->new("list");
     $r->value( \@vs );
     return $r;
+}
+
+sub _impl_if{
+    my ($self, $ast) = @_;
+    my $size = $ast->size();
+    $ast->error("if expects 2 or 3 arguments") if $size > 4 or $size < 3;
+    my $cond = $self->evaler()->_eval( $ast->second() );
+        $ast->error(
+            "if expects a bool as the first argument but got " . $cond->type() )
+            unless $cond->type() eq "bool";
+
+    if ( $cond->value() eq "true" ) {
+        return $self->evaler()->_eval( $ast->third() );
+    }
+    elsif ( $size == 4 ) {
+        return $self->evaler()->_eval( $ast->fourth() );
+    }
+    else {
+        return $self->evaler()->nil();
+    }
+}
+
+sub _impl_while{
+    my ($self, $ast) = @_;
+    my $size = $ast->size();
+    $ast->error("while expects >= 2 arguments") if $size < 3;
+
+    my $res  = $self->evaler()->nil();
+    my @body = $ast->slice( 2 .. $size - 1 );
+
+    while(1){
+        # Evaluates the condition a first time.
+        my $cond = $self->evaler()->_eval( $ast->second() );
+        $ast->error( "while expects a bool as the evaluation of the condition but got "
+                         . $cond->type() )
+            if $cond->type() ne "bool";
+
+        # Condition is false. Just exit the loop
+        unless( $cond->value() eq "true" ) {
+            last;
+        }
+        # Condition is true. Eval the body
+        foreach my $i (@body) {
+            $res = $self->evaler()->_eval($i);
+        }
+    }
+    return $res;
 }
 
 1;

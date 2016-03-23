@@ -146,4 +146,20 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     is( scalar( @{$res->value()} ) , 3 );
 }
 
+{
+    # Flow control
+    ok( my $res = $lisp->eval(q|( if (> 1 2 ) (syntax "ya") (syntax "nie"))|) );
+    is( $res->value() , "nie");
+    ok( $res = $lisp->eval(q|( if (> 1 2 ) (syntax "ya"))|) );
+    is( $res->value() , "nil");
+    ok( $res = $lisp->eval(q|( if (< 1 2 ) (syntax "ya") (syntax "nie"))|) );
+    is( $res->value() , "ya");
+
+    ok( $res = $lisp->eval(q|
+(set! foo 5 )
+(while (< foo 10) ( set! foo (+ foo 1 ) ) )
+|));
+    is( $res->value() , 10 );
+}
+
 done_testing();
