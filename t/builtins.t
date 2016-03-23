@@ -160,6 +160,9 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
 (while (< foo 10) ( set! foo (+ foo 1 ) ) )
 |));
     is( $res->value() , 10 );
+
+    ok( $res = $lisp->eval(q|( begin ( + 1 2 ) ( + 3 4 ) )|) );
+    is( $res->value(), 7 );
 }
 
 done_testing();

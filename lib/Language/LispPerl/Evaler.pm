@@ -796,18 +796,7 @@ sub builtin {
         return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn eq "begin" ) {
-        $ast->error("being expects >= 1 arguments") if $size < 2;
-        my $res  = $nil;
-        my @body = $ast->slice( 1 .. $size - 1 );
-        foreach my $i (@body) {
-            $res = $self->_eval($i);
-        }
-        return $res;
-
-        # + - & / % operations
-    }
-    elsif ( $fn =~ /^(\+|\-|\*|\/|\%)$/ ) {
+    if ( $fn =~ /^(\+|\-|\*|\/|\%)$/ ) {
         $ast->error( $fn . " expects 2 arguments" ) if $size != 3;
         my $v1 = $self->_eval( $ast->second() );
         my $v2 = $self->_eval( $ast->third() );

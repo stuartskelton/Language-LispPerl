@@ -47,8 +47,8 @@ has 'functions' => (
 
             "if"                => \&_impl_if,
             "while"             => \&_impl_while,
+            "begin"             => \&_impl_begin,
 
-            # "begin"             => 1,
             # "length"            => 1,
             # "reverse"           => 1,
             # "object-id"         => 1,
@@ -540,6 +540,18 @@ sub _impl_while{
         foreach my $i (@body) {
             $res = $self->evaler()->_eval($i);
         }
+    }
+    return $res;
+}
+
+sub _impl_begin{
+    my ($self, $ast) = @_;
+    my $size = $ast->size();
+    $ast->error("being expects >= 1 arguments") if $size < 2;
+    my $res  = $self->evaler()->nil();
+    my @body = $ast->slice( 1 .. $size - 1 );
+    foreach my $i (@body) {
+        $res = $self->evaler()->_eval($i);
     }
     return $res;
 }
