@@ -165,4 +165,16 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     is( $res->value(), 7 );
 }
 
+{
+    # String tests
+    ok( my $res = $lisp->eval(q|( if ( eq "bla" "bla") "yes")|) );
+    is( $res->value() , 'yes' );
+    ok( $res = $lisp->eval(q|( if ( ne "bla" "blad") "yes")|) );
+    is( $res->value() , 'yes' );
+    ok( $res = $lisp->eval(q|( if ( gt "aaa" "bbb") "yes" "no")|) );
+    is( $res->value() , 'no' );
+    ok( $res = $lisp->eval(q|( if ( lt "aaa" "bbb") "yes" "no")|) );
+    is( $res->value() , 'yes' );
+}
+
 done_testing();

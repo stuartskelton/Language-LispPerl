@@ -81,8 +81,12 @@ has 'functions' => (
 
             # "."                 => 1,
             # "->"                => 1,
-            # "eq"                => 1,
-            # "ne"                => 1,
+
+            "eq"                => \&_impl_str_bool,
+            "ne"                => \&_impl_str_bool,
+            "lt"                => \&_impl_str_bool,
+            "gt"                => \&_impl_str_bool,
+
             # "and"               => 1,
             # "or"                => 1,
             # "equal"             => 1,
@@ -608,6 +612,32 @@ sub _impl_num_bin{
     my $vv1 = $v1->value();
     my $vv2 = $v2->value();
     return Language::LispPerl::Atom->new( "number", $num_func->( $vv1 , $vv2 ) * 1 );
+}
+my $STRING_FUNCTIONS = {
+    'eq' => sub{ shift() eq shift(); },
+    'ne' => sub{ shift() ne shift(); },
+    'lt' => sub{ shift() lt shift(); },
+    'gt' => sub{ shift() gt shift(); },
+};
+sub _impl_str_bool{
+    my ($self, $ast, $symbol) = @_;
+
+    my $size = $ast->size();
+    my $fn = $symbol->value();
+    my $str_func = $STRING_FUNCTIONS->{$fn} or
+        $ast->error("Unknown string function $fn");
+
+    $ast->error( $fn . " expects 2 arguments" ) if $size != 3;
+    my $v1 = $self->evaler()->_eval( $ast->second() );
+    my $v2 = $self->evaler()->_eval( $ast->third() );
+    $ast->error( $fn
+                     . " expects string as arguments but got "
+                     . $v1->type() . " and "
+                     . $v2->type() )
+        if $v1->type() ne "string"
+        or $v2->type() ne "string";
+
+    return $str_func->($v1->value(), $v2->value()) ? $self->evaler()->true() : $self->evaler()->false();
 }
 
 1;

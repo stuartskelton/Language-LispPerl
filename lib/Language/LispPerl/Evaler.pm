@@ -337,8 +337,12 @@ our $builtin_funcs = {
     "<="                => 1,
     "."                 => 1,
     "->"                => 1,
+
     "eq"                => 1,
     "ne"                => 1,
+    "lt"                => 1,
+    "gt"                => 1,
+
     "and"               => 1,
     "or"                => 1,
     "equal"             => 1,
@@ -785,7 +789,7 @@ Usage:
 
 sub word_is_reserved{
     my ($self, $word ) = @_;
-    return $builtin_funcs->{$word} or $word =~ /^(\.|->)\S+$/;
+    return $builtin_funcs->{$word} || ( $word =~ /^(\.|->)\S+$/ );
 }
 
 sub builtin {
@@ -806,28 +810,6 @@ sub builtin {
         return Language::LispPerl::Atom->new( "string", $v->{name} );
 
         # eq ne for string comparing
-    }
-    elsif ( $fn =~ /^(eq|ne)$/ ) {
-        $ast->error( $fn . " expects 2 arguments" ) if $size != 3;
-        my $v1 = $self->_eval( $ast->second() );
-        my $v2 = $self->_eval( $ast->third() );
-        $ast->error( $fn
-              . " expects string as arguments but got "
-              . $v1->type() . " and "
-              . $v2->type() )
-          if $v1->type() ne "string"
-          or $v2->type() ne "string";
-        my $vv1 = $v1->value();
-        my $vv2 = $v2->value();
-        my $r   = eval("'$vv1' $fn '$vv2'");
-        if ($r) {
-            return $true;
-        }
-        else {
-            return $false;
-        }
-
-        # (equal a b)
     }
     elsif ( $fn eq "equal" ) {
         $ast->error( $fn . " expects 2 arguments" ) if $size != 3;
