@@ -305,11 +305,25 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
         is( $res->value()->{c}->value() , 'd' );
     }
 }
+{
+    # keys
+    ok( my $res = $lisp->eval(q|(keys {:a 1 :b 2})|) );
+    is( $res->value()->[0]->value(), 'a' );
+}
 
 {
     # xml-name
     ok( my $res = $lisp->eval(q|(xml-name #[header "bla"])|) );
     is( $res->value() , 'header' );
+}
+
+{
+    # Namespace building
+    ok( my $res = $lisp->eval(q|(namespace-begin "boudinblanc")|));
+    is( $lisp->current_namespace() , 'boudinblanc');
+
+    ok( $res = $lisp->eval(q|(namespace-end)|) );
+    is( $lisp->current_namespace() , '');
 }
 
 done_testing();

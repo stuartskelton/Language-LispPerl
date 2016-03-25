@@ -60,14 +60,20 @@ has 'functions' => (
             "reverse"           => \&_impl_reverse,
             "append"            => \&_impl_append,
 
+            # General purpose equal function
+            "equal"             => \&_impl_equal,
+
+            # xml utilities
+            "xml-name"          => \&_impl_xml_name,
+
+            # Hashmaps utilities
+            "keys"              => \&_impl_keys,
+
             # "object-id"         => 1,
             # "type"              => 1,
             # "perlobj-type"      => 1,
             # "meta"              => 1,
             # "apply"             => 1,
-            # "keys"              => 1,
-            # "namespace-begin"   => 1,
-            # "namespace-end"     => 1,
             # "perl->clj"         => 1,
             # "clj->string"       => 1,
 
@@ -99,12 +105,9 @@ has 'functions' => (
             "and"               => \&_impl_and,
             "or"                => \&_impl_or,
 
-            # General purpose equal function
-            "equal"             => \&_impl_equal,
-
-            # xml utilities
-            "xml-name"          => \&_impl_xml_name,
-
+            # Package building
+            "namespace-begin"   => \&_impl_namespace_begin,
+            "namespace-end"     => \&_impl_namespace_end,
             # "println"           => 1,
             # "coro"              => 1,
             # "coro-suspend"      => 1,
@@ -819,12 +822,48 @@ sub _impl_append{
 
 sub _impl_xml_name{
     my ($self, $ast) = @_;
-    $ast->error( "xml-name expects 1 argument" ) if $ast->size != 2;
+    $ast->error( "xml-name expects 1 argument" ) if $ast->size() != 2;
 
     my $v = $self->evaler()->_eval( $ast->second() );
     $ast->error( "xml-name expects xml as argument but got " . $v->type() )
         if $v->type() ne "xml";
     return Language::LispPerl::Atom->new( "string", $v->{name} );
+}
+
+sub _impl_keys{
+    my ($self, $ast) = @_;
+
+    $ast->error("keys expects 1 argument") if $ast->size() != 2;
+    my $v = $self->evaler()->_eval( $ast->second() );
+    $ast->error( "keys expects map as arguments but got " . $v->type() )
+        if $v->type() ne "map";
+    my @r = ();
+    foreach my $k ( keys %{ $v->value() } ) {
+        push @r, Language::LispPerl::Atom->new( "keyword", $k );
+    }
+    return Language::LispPerl::Seq->new( "list", \@r );
+}
+
+sub _impl_namespace_begin{
+    my ($self, $ast) = @_;
+    $ast->error("namespace-begin expects 1 argument") if $ast->size() != 2;
+    my $v = $ast->second();
+    unless( $v->type() eq "symbol" or $v->type() eq "keyword" ) {
+        # Not already a symbol or keyword.
+        $v = $self->evaler()->_eval($v);
+        $ast->error( "namespace-begin expects string as argument but got "
+                         . $v->type() )
+            if $v->type() ne "string";
+    }
+    $self->evaler()->push_namespace( $v->value() );
+    return $v;
+}
+
+sub _impl_namespace_end{
+    my ($self, $ast) = @_;
+    $ast->error("namespace-end expects 0 argument") if $ast->size() != 1;
+    $self->evaler()->pop_namespace();
+    return $self->evaler()->nil();
 }
 
 

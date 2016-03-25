@@ -813,43 +813,7 @@ sub builtin {
         return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn eq "keys" ) {
-        $ast->error("keys expects 1 argument") if $size != 2;
-        my $v = $self->_eval( $ast->second() );
-        $ast->error( "keys expects map as arguments but got " . $v->type() )
-          if $v->type() ne "map";
-        my @r = ();
-        foreach my $k ( keys %{ $v->value() } ) {
-            push @r, Language::LispPerl::Atom->new( "keyword", $k );
-        }
-        return Language::LispPerl::Seq->new( "list", \@r );
-
-        # (namespace-begin "ns")
-    }
-    elsif ( $fn eq "namespace-begin" ) {
-        $ast->error("namespace-begin expects 1 argument") if $size != 2;
-        my $v = $ast->second();
-        if ( $v->type() eq "symbol" or $v->type() eq "keyword" ) {
-        }
-        else {
-            $v = $self->_eval($v);
-            $ast->error( "namespace-begin expects string as argument but got "
-                  . $v->type() )
-              if $v->type() ne "string";
-        }
-        $self->push_namespace( $v->value() );
-        return $v;
-
-        # (namespace-end)
-    }
-    elsif ( $fn eq "namespace-end" ) {
-        $ast->error("namespace-end expects 0 argument") if $size != 1;
-        $self->pop_namespace();
-        return $nil;
-
-        # (object-id obj)
-    }
-    elsif ( $fn eq "object-id" ) {
+    if ( $fn eq "object-id" ) {
         $ast->error("object-id expects 1 argument") if $size != 2;
         my $v = $self->_eval( $ast->second() );
         return Language::LispPerl::Atom->new( "string", $v->object_id() );
