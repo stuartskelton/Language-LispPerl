@@ -308,7 +308,9 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
 {
     # keys
     ok( my $res = $lisp->eval(q|(keys {:a 1 :b 2})|) );
-    is( $res->value()->[0]->value(), 'a' );
+    my %got_key = map{ $_->value() => 1 }  @{ $res->value() };
+    ok( $got_key{a} );
+    ok( $got_key{b} );
 }
 
 {
