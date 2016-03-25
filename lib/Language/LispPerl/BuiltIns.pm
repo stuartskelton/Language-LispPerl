@@ -18,6 +18,7 @@ has 'functions' => (
     is      => 'ro',
     default => sub {
         {
+            # Turing completeness
             "eval"              => \&_impl_eval,
             "syntax"            => \&_impl_syntax,
 
@@ -32,7 +33,7 @@ has 'functions' => (
             "set!"              => \&_impl_set_bang,
             "let"               => \&_impl_let,
 
-            # A pure function
+            # Lambda function
             "fn"                => \&_impl_fn,
 
             # Define macros
@@ -45,18 +46,21 @@ has 'functions' => (
             "cdr"               => \&_impl_cdr,
             "cons"              => \&_impl_cons,
 
+            # Flow control
             "if"                => \&_impl_if,
             "while"             => \&_impl_while,
             "begin"             => \&_impl_begin,
 
-            # "length"            => 1,
-            # "reverse"           => 1,
+            # General purpose "collection" functions
+            "length"            => \&_impl_length,
+            "reverse"           => \&_impl_reverse,
+            "append"            => \&_impl_append,
+
             # "object-id"         => 1,
             # "type"              => 1,
             # "perlobj-type"      => 1,
             # "meta"              => 1,
             # "apply"             => 1,
-            # "append"            => 1,
             # "keys"              => 1,
             # "namespace-begin"   => 1,
             # "namespace-end"     => 1,
@@ -713,6 +717,101 @@ sub _impl_or{
         if $v2->type() ne "bool";
 
     return $v2->value() eq 'true' ? $self->evaler()->true() : $self->evaler()->false();
+}
+
+sub _impl_length{
+    my ($self, $ast, $symbol) = @_;
+    $ast->error("length expects 1 argument") if $ast->size() != 2;
+    my $v = $self->evaler()->_eval( $ast->second() );
+    my $r = Language::LispPerl::Atom->new( "number", 0 );
+    if ( $v->type() eq "string" ) {
+        $r->value( length( $v->value() ) );
+        return $r;
+    }
+
+    if ($v->type() eq "list"
+            or $v->type() eq "vector"
+            or $v->type() eq "xml" ){
+        $r->value( scalar @{ $v->value() } );
+        return $r;
+    }
+
+    if ( $v->type() eq "map" ) {
+        $r->value( scalar %{ $v->value() } );
+        return $r;
+    }
+
+    $ast->error(
+        "unexpected type " . $v->type() . " of argument for length." );
+}
+
+sub _impl_reverse{
+    my ($self, $ast, $symbol) = @_;
+    $ast->error("length expects 1 argument") if $ast->size != 2;
+    my $v = $self->evaler()->_eval( $ast->second() );
+
+    if ( $v->type() eq "string" ) {
+        return Language::LispPerl::Atom->new( "string", scalar( reverse( $v->value() ) ) );
+    }
+
+    if ( $v->type() eq "list" ) {
+        my $r = Language::LispPerl::Seq->new("list");
+        my @vv = reverse @{ $v->value() };
+        $r->value( \@vv );
+        return $r;
+    }
+
+    if ( $v->type() eq "vector" or $v->type() eq "xml" ) {
+        my $r = Language::LispPerl::Atom->new( $v->type() );
+        my @vv = reverse @{ $v->value() };
+        $r->value( \@vv );
+        return $r;
+    }
+
+    $ast->error(
+        "unexpected type " . $v->type() . " of argument for reverse" );
+}
+
+sub _impl_append{
+    my ($self, $ast, $symbol) = @_;
+    $ast->error("append expects 2 arguments") if $ast->size != 3;
+    my $v1     = $self->evaler()->_eval( $ast->second() );
+    my $v2     = $self->evaler()->_eval( $ast->third() );
+    my $v1type = $v1->type();
+    my $v2type = $v2->type();
+
+    $ast->error(
+        "append expects string or list or vector as arguments but got "
+            . $v1type . " and "
+            . $v2type )
+        if (
+            ( $v1type ne $v2type )
+                or (    $v1type ne "string"
+                        and $v1type ne "list"
+                        and $v1type ne "vector"
+                        and $v1type ne "map" )
+            );
+
+    if ( $v1type eq "string" ) {
+        # Concat strings.
+        return Language::LispPerl::Atom->new( "string", $v1->value() . $v2->value() );
+    }
+
+    if ( $v1type eq "list" or $v1type eq "vector" ) {
+        my @r = ();
+        push @r, @{ $v1->value() };
+        push @r, @{ $v2->value() };
+        if ( $v1type eq "list" ) {
+            return Language::LispPerl::Seq->new( "list", \@r );
+        }
+        else {
+            return Language::LispPerl::Atom->new( "vector", \@r );
+        }
+    }
+
+    # Not a string, a list or a vector. Must be a map (cause we checked typing earlier)
+    my %r = ( %{ $v1->value() }, %{ $v2->value() } );
+    return Language::LispPerl::Atom->new( "map", \%r );
 }
 
 1;

@@ -242,4 +242,69 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     }
 }
 
+{
+    # Length
+    {
+        ok( my $res = $lisp->eval(q|(length "abcd")|) );
+        is( $res->value() , 4 );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(length [ 1 2 3 ])|) );
+        is( $res->value() , 3 );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(length (list `a `b `c `d `e))|) );
+        is( $res->value() , 5 );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(length #[html ^{:class "markdown"} #[body #[p "helleworld"]]])|) );
+        is( $res->value(), 1 );
+    }
+}
+
+{
+    # Reverse
+    {
+        ok( my $res = $lisp->eval(q|(reverse "abcd")|) );
+        is( $res->value() , 'dcba' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(reverse "")|) );
+        is( $res->value() , '' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(reverse (list 1 2))|) );
+        is( $res->value()->[0]->value() , 2 );
+    }
+    {
+        ok( my $res = $lisp->eval(q|( reverse [ 1 2 ] )|) );
+        is( $res->value()->[0]->value(), 2 );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(reverse #[header #[p "P1"] #[p "P2"] ])|) );
+        is( $res->value()->[0]->value()->[0]->value(), 'P2' );
+    }
+}
+
+{
+    # Append
+    {
+        ok( my $res = $lisp->eval(q|(append "abcd" "efgh")|) );
+        is( $res->value() , 'abcdefgh' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(append (list 1 2) (list 3 4))|) );
+        is( $res->value()->[3]->value() , 4 );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(append [ 1 2 ] [3 4] )|) );
+        is( $res->value()->[3]->value(), 4 );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(append  {:a `b} {:c `d})|) );
+        is( $res->value()->{c}->value() , 'd' );
+    }
+    
+}
+
 done_testing();
