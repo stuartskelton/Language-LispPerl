@@ -304,7 +304,12 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
         ok( my $res = $lisp->eval(q|(append  {:a `b} {:c `d})|) );
         is( $res->value()->{c}->value() , 'd' );
     }
-    
+}
+
+{
+    # xml-name
+    ok( my $res = $lisp->eval(q|(xml-name #[header "bla"])|) );
+    is( $res->value() , 'header' );
 }
 
 done_testing();

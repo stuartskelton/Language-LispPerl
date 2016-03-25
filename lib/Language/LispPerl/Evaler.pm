@@ -249,6 +249,17 @@ sub search_file {
     Language::LispPerl::Logger::error( "cannot find " . $file );
 }
 
+=head2 load
+
+Reads a file once if it hasn't been read before, for loading
+libraries in the global scope.
+
+Usage:
+
+ $this->load(/path/to/file.clp');
+
+=cut
+
 sub load {
     my $self = shift;
     my $file = shift;
@@ -275,7 +286,7 @@ and returns the last evaluation result.
 
 Usage:
 
- $this->read('/path/to/file');
+ $this->read('/path/to/file.clp');
 
 =cut
 
@@ -802,16 +813,7 @@ sub builtin {
         return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn eq "xml-name" ) {
-        $ast->error( $fn . " expects 1 argument" ) if $size != 2;
-        my $v = $self->_eval( $ast->second() );
-        $ast->error( $fn . " expects xml as argument but got " . $v->type() )
-          if $v->type() ne "xml";
-        return Language::LispPerl::Atom->new( "string", $v->{name} );
-
-        # eq ne for string comparing
-    }
-    elsif ( $fn eq "keys" ) {
+    if ( $fn eq "keys" ) {
         $ast->error("keys expects 1 argument") if $size != 2;
         my $v = $self->_eval( $ast->second() );
         $ast->error( "keys expects map as arguments but got " . $v->type() )

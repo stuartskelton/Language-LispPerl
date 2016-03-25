@@ -18,9 +18,13 @@ has 'functions' => (
     is      => 'ro',
     default => sub {
         {
-            # Turing completeness
+            # Completeness
             "eval"              => \&_impl_eval,
             "syntax"            => \&_impl_syntax,
+
+            # Lisp file inclusion operation
+            "require"           => \&_impl_require,
+            "read"              => \&_impl_read,
 
             # Exception stuff
             "throw"             => \&_impl_throw,
@@ -98,9 +102,9 @@ has 'functions' => (
             # General purpose equal function
             "equal"             => \&_impl_equal,
 
-            # File operations.
-            "require"           => \&_impl_require,
-            "read"              => \&_impl_read,
+            # xml utilities
+            "xml-name"          => \&_impl_xml_name,
+
             # "println"           => 1,
             # "coro"              => 1,
             # "coro-suspend"      => 1,
@@ -111,7 +115,6 @@ has 'functions' => (
             # "coro-join"         => 1,
             # "coro-current"      => 1,
             # "coro-main"         => 1,
-            # "xml-name"          => 1,
             # "trace-vars"        => 1
         };
     }
@@ -813,5 +816,16 @@ sub _impl_append{
     my %r = ( %{ $v1->value() }, %{ $v2->value() } );
     return Language::LispPerl::Atom->new( "map", \%r );
 }
+
+sub _impl_xml_name{
+    my ($self, $ast) = @_;
+    $ast->error( "xml-name expects 1 argument" ) if $ast->size != 2;
+
+    my $v = $self->evaler()->_eval( $ast->second() );
+    $ast->error( "xml-name expects xml as argument but got " . $v->type() )
+        if $v->type() ne "xml";
+    return Language::LispPerl::Atom->new( "string", $v->{name} );
+}
+
 
 1;
