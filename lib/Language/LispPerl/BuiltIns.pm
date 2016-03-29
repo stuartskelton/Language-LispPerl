@@ -5,6 +5,7 @@ use Moo;
 use Carp;
 
 use Language::LispPerl::Atom;
+use Language::LispPerl::Printer;
 
 =head1 NAME
 
@@ -39,6 +40,7 @@ has 'functions' => (
 
             # Lambda function
             "fn"                => \&_impl_fn,
+            "apply"             => \&_impl_apply,
 
             # Define macros
             "defmacro"          => \&_impl_defmacro,
@@ -69,11 +71,12 @@ has 'functions' => (
             # Hashmaps utilities
             "keys"              => \&_impl_keys,
 
-            # "object-id"         => 1,
-            # "type"              => 1,
+            # Object Introspection
+            "object-id"         => \&_impl_object_id,
+            "type"              => \&_impl_type,
+            "meta"              => \&_impl_meta,
+
             # "perlobj-type"      => 1,
-            # "meta"              => 1,
-            # "apply"             => 1,
             # "perl->clj"         => 1,
             # "clj->string"       => 1,
 
@@ -108,7 +111,10 @@ has 'functions' => (
             # Package building
             "namespace-begin"   => \&_impl_namespace_begin,
             "namespace-end"     => \&_impl_namespace_end,
-            # "println"           => 1,
+
+            #IO
+            "println"           => \&_impl_println,
+
             # "coro"              => 1,
             # "coro-suspend"      => 1,
             # "coro-sleep"        => 1,
@@ -155,7 +161,6 @@ sub call_function{
     my ($self , $code , @args ) = @_;
     return $code->( $self, @args);
 }
-
 
 sub _impl_eval{
     my ($self , $ast ) = @_;
@@ -396,6 +401,35 @@ sub _impl_fn{
     $nast->{context} = $self->evaler()->copy_current_scope();
 
     return $nast;
+}
+
+sub _impl_apply{
+    my ($self, $ast ) = @_;
+    $ast->error("apply expects 2 arguments") if $ast->size != 3;
+    my $f = $self->evaler()->_eval( $ast->second() );
+    $ast->error( "apply expects function as the first argument but got "
+                     . $f->type() )
+        if (
+            $f->type() ne "function"
+                and !(
+                    $f->type() eq "symbol"
+                        and $self->has_function( $f->value() )
+                    )
+            );
+
+    my $l = $self->evaler()->_eval( $ast->third() );
+    $ast->error(
+        "apply expects list as the first argument but got " . $l->type() )
+        if $l->type() ne "list";
+
+    # Build a ( <function> ( args list  ) ) list.
+    my $n = Language::LispPerl::Seq->new("list");
+    $n->append($f);
+    foreach my $i ( @{ $l->value() } ) {
+        $n->append($i);
+    }
+    # And eval it.
+    return $self->evaler()->_eval($n);
 }
 
 sub _impl_defmacro{
@@ -863,6 +897,48 @@ sub _impl_namespace_end{
     my ($self, $ast) = @_;
     $ast->error("namespace-end expects 0 argument") if $ast->size() != 1;
     $self->evaler()->pop_namespace();
+    return $self->evaler()->nil();
+}
+
+sub _impl_object_id{
+    my ($self, $ast) = @_;
+    $ast->error("object-id expects 1 argument") if $ast->size != 2;
+    my $v = $self->evaler()->_eval( $ast->second() );
+    return Language::LispPerl::Atom->new( "string", $v->object_id() );
+}
+
+sub _impl_type{
+    my ($self, $ast) = @_ ;
+    $ast->error("type expects 1 argument") if $ast->size != 2;
+    my $v = $self->evaler()->_eval( $ast->second() );
+    return Language::LispPerl::Atom->new( "string", $v->type() );
+}
+
+sub _impl_meta{
+    my ($self, $ast) = @_;
+
+    my $size = $ast->size();
+    $ast->error("meta expects 1 or 2 arguments") if $size < 2 or $size > 3;
+    my $v = $self->evaler()->_eval( $ast->second() );
+    if ( $size == 3 ) {
+        my $vm = $self->evaler()->_eval( $ast->third() );
+        $ast->error(
+            "meta expects 1 meta data as the second arguments but got "
+                . $vm->type() )
+            if $vm->type() ne "meta";
+        $v->meta($vm);
+    }
+    my $m = $v->meta();
+    $ast->error( "no meta data in " . Language::LispPerl::Printer::to_string($v) )
+        if !defined $m;
+    return $m;
+}
+
+sub _impl_println{
+    my ($self, $ast) = @_;
+    $ast->error("println expects 1 argument") if $ast->size != 2;
+    print Language::LispPerl::Printer::to_string( $self->evaler()->_eval( $ast->second() ) )
+        . "\n";
     return $self->evaler()->nil();
 }
 

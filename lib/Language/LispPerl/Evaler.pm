@@ -812,22 +812,7 @@ sub builtin {
     if( my $function = $self->builtins()->has_function( $fn ) ){
         return $self->builtins()->call_function( $function , $ast , $f );
     }
-
-    if ( $fn eq "object-id" ) {
-        $ast->error("object-id expects 1 argument") if $size != 2;
-        my $v = $self->_eval( $ast->second() );
-        return Language::LispPerl::Atom->new( "string", $v->object_id() );
-
-        # (type obj)
-    }
-    elsif ( $fn eq "type" ) {
-        $ast->error("type expects 1 argument") if $size != 2;
-        my $v = $self->_eval( $ast->second() );
-        return Language::LispPerl::Atom->new( "string", $v->type() );
-
-        # (perlobj-type obj)
-    }
-    elsif ( $fn eq "perlobj-type" ) {
+    if ( $fn eq "perlobj-type" ) {
         $ast->error("perlobj-type expects 1 argument") if $size != 2;
         my $v = $self->_eval( $ast->second() );
         $ast->error( "perlobj-type expects perlobject as argument but got "
@@ -836,47 +821,6 @@ sub builtin {
         return Language::LispPerl::Atom->new( "string", ref( $v->value() ) );
 
         # (apply fn list)
-    }
-    elsif ( $fn eq "apply" ) {
-        $ast->error("apply expects 2 arguments") if $size != 3;
-        my $f = $self->_eval( $ast->second() );
-        $ast->error( "apply expects function as the first argument but got "
-              . $f->type() )
-          if (
-            $f->type() ne "function"
-            and !(
-                $f->type() eq "symbol"
-                and exists $builtin_funcs->{ $f->value() }
-            )
-          );
-        my $l = $self->_eval( $ast->third() );
-        $ast->error(
-            "apply expects list as the first argument but got " . $l->type() )
-          if $l->type() ne "list";
-        my $n = Language::LispPerl::Seq->new("list");
-        $n->append($f);
-        foreach my $i ( @{ $l->value() } ) {
-            $n->append($i);
-        }
-        return $self->_eval($n);
-
-        # (meta obj)
-    }
-    elsif ( $fn eq "meta" ) {
-        $ast->error("meta expects 1 or 2 arguments") if $size < 2 or $size > 3;
-        my $v = $self->_eval( $ast->second() );
-        if ( $size == 3 ) {
-            my $vm = $self->_eval( $ast->third() );
-            $ast->error(
-                "meta expects 1 meta data as the second arguments but got "
-                  . $vm->type() )
-              if $vm->type() ne "meta";
-            $v->meta($vm);
-        }
-        my $m = $v->meta();
-        $ast->error( "no meta data in " . Language::LispPerl::Printer::to_string($v) )
-          if !defined $m;
-        return $m;
     }
     elsif ( $fn eq "clj->string" ) {
         $ast->error("clj->string expects 1 argument") if $size != 2;
@@ -950,10 +894,6 @@ sub builtin {
         # (println obj)
     }
     elsif ( $fn eq "println" ) {
-        $ast->error("println expects 1 argument") if $size != 2;
-        print Language::LispPerl::Printer::to_string( $self->_eval( $ast->second() ) )
-          . "\n";
-        return $nil;
     }
     elsif ( $fn eq "coro" ) {
         $ast->error("coro expects 1 argument") if $size != 2;

@@ -328,4 +328,43 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     is( $lisp->current_namespace() , '');
 }
 
+{
+    # object introspection
+    {
+        ok( my $res = $lisp->eval(q|(object-id 1)|) );
+        is( $res->value() , 'atom792' );
+    }
+
+    {
+        ok( my $res = $lisp->eval(q|(type 1)|) );
+        is( $res->value() , 'number' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|(type "bla")|) );
+        is( $res->value() , 'string' );
+    }
+
+    {
+        ok( my $res = $lisp->eval(q|(meta 1 ^{:a 2})|) );
+        is( $res->type() , 'meta' );
+    }
+
+    {
+        ok( my $res = $lisp->eval(q|(meta #[html ^{:class "markdown"} #[body #[p "helleworld"]]])|) );
+        is( $res->type() , 'meta' );
+    }
+}
+
+{
+    # Apply
+    {
+        ok( my $res = $lisp->eval(q|( apply + ( list 1 2 ) )|) );
+        is( $res->value() , 3 );
+    }
+    {
+        ok( my $res = $lisp->eval(q|( apply (fn [a  b] ( * a b ) ) ( list 2 3 ) )|) );
+        is( $res->value() , 6 );
+    }
+}
+
 done_testing();
