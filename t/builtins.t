@@ -367,4 +367,16 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     }
 }
 
+{
+    # Stringification
+    {
+        ok( my $res = $lisp->eval( q|( clj->string  [ 1 2 3 ] )|) );
+        is( $res->value() , '[1 2 3]');
+    }
+    {
+        ok( my $res = $lisp->eval( q|( clj->string  (fn [a b] ( * a b ) ) )|) );
+        is( $res->value() , '(fn [a b] (* a b))');
+    }
+}
+
 done_testing();

@@ -822,13 +822,6 @@ sub builtin {
 
         # (apply fn list)
     }
-    elsif ( $fn eq "clj->string" ) {
-        $ast->error("clj->string expects 1 argument") if $size != 2;
-        my $v = $self->_eval( $ast->second() );
-        return Language::LispPerl::Atom->new( "string", Language::LispPerl::Printer::to_string($v) );
-
-        # (.namespace function args...)
-    }
     elsif ( $fn =~ /^(\.|->)(\S*)$/ ) {
         my $blessed = $1;
         my $ns      = $2;
@@ -892,8 +885,6 @@ sub builtin {
         return &perl2clj( $o->value() );
 
         # (println obj)
-    }
-    elsif ( $fn eq "println" ) {
     }
     elsif ( $fn eq "coro" ) {
         $ast->error("coro expects 1 argument") if $size != 2;

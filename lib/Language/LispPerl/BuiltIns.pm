@@ -75,10 +75,10 @@ has 'functions' => (
             "object-id"         => \&_impl_object_id,
             "type"              => \&_impl_type,
             "meta"              => \&_impl_meta,
+            "clj->string"       => \&_impl_clj_string,
 
             # "perlobj-type"      => 1,
             # "perl->clj"         => 1,
-            # "clj->string"       => 1,
 
             # Numeric binary functions
             "+"                 => \&_impl_num_bin,
@@ -942,5 +942,12 @@ sub _impl_println{
     return $self->evaler()->nil();
 }
 
+
+sub _impl_clj_string{
+    my ($self, $ast) = @_;
+    $ast->error("clj->string expects 1 argument") if $ast->size() != 2;
+    my $v = $self->evaler()->_eval( $ast->second() );
+    return Language::LispPerl::Atom->new( "string", Language::LispPerl::Printer::to_string($v) );
+}
 
 1;
