@@ -379,4 +379,8 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     }
 }
 
+{
+    ok( my $res = $lisp->eval(q|( trace-vars )|) );
+}
+
 done_testing();

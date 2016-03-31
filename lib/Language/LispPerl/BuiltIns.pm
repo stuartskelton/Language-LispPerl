@@ -77,8 +77,8 @@ has 'functions' => (
             "meta"              => \&_impl_meta,
             "clj->string"       => \&_impl_clj_string,
 
-            # "perlobj-type"      => 1,
-            # "perl->clj"         => 1,
+            "perlobj-type"      => \&_impl_perlobj_type,
+            "perl->clj"         => \&_impl_perl_clj,
 
             # Numeric binary functions
             "+"                 => \&_impl_num_bin,
@@ -115,6 +115,9 @@ has 'functions' => (
             #IO
             "println"           => \&_impl_println,
 
+            "trace-vars"        => \&_impl_trace_vars,
+
+            # Coro stuff
             # "coro"              => 1,
             # "coro-suspend"      => 1,
             # "coro-sleep"        => 1,
@@ -124,7 +127,7 @@ has 'functions' => (
             # "coro-join"         => 1,
             # "coro-current"      => 1,
             # "coro-main"         => 1,
-            # "trace-vars"        => 1
+
         };
     }
 );
@@ -948,6 +951,33 @@ sub _impl_clj_string{
     $ast->error("clj->string expects 1 argument") if $ast->size() != 2;
     my $v = $self->evaler()->_eval( $ast->second() );
     return Language::LispPerl::Atom->new( "string", Language::LispPerl::Printer::to_string($v) );
+}
+
+sub _impl_trace_vars{
+    my ($self, $ast) = @_;
+    $ast->error("trace-vars expects 0 argument") if $ast->size != 1;
+    $self->evaler()->trace_vars();
+    return $self->evaler()->nil();
+}
+
+sub _impl_perlobj_type{
+    my ($self, $ast) = @_;
+    $ast->error("perlobj-type expects 1 argument") if $ast->size != 2;
+    my $v = $self->evaler()->_eval( $ast->second() );
+    $ast->error( "perlobj-type expects perlobject as argument but got "
+                     . $v->type() )
+        if ( $v->type() ne "perlobject" );
+    return Language::LispPerl::Atom->new( "string", ref( $v->value() ) );
+}
+
+sub _impl_perl_clj{
+    my ($self, $ast) = @_;
+    $ast->error("perl->clj expects 1 argument") if $ast->size() != 2;
+    my $o = $self->evaler()->_eval( $ast->second() );
+    $ast->error(
+        "perl->clj expects perlobject as argument but got " . $o->type() )
+        if $o->type() ne "perlobject";
+    return $self->evaler()->perl2clj( $o->value() );
 }
 
 1;

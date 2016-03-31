@@ -3,6 +3,7 @@ package Language::LispPerl::Evaler;
 use strict;
 use warnings;
 
+use Carp;
 use Moo;
 
 use Coro;
@@ -812,17 +813,8 @@ sub builtin {
     if( my $function = $self->builtins()->has_function( $fn ) ){
         return $self->builtins()->call_function( $function , $ast , $f );
     }
-    if ( $fn eq "perlobj-type" ) {
-        $ast->error("perlobj-type expects 1 argument") if $size != 2;
-        my $v = $self->_eval( $ast->second() );
-        $ast->error( "perlobj-type expects perlobject as argument but got "
-              . $v->type() )
-          if ( $v->type() ne "perlobject" );
-        return Language::LispPerl::Atom->new( "string", ref( $v->value() ) );
 
-        # (apply fn list)
-    }
-    elsif ( $fn =~ /^(\.|->)(\S*)$/ ) {
+    if ( $fn =~ /^(\.|->)(\S*)$/ ) {
         my $blessed = $1;
         my $ns      = $2;
         $ast->error(". expects > 1 arguments") if $size < 2;
@@ -875,16 +867,6 @@ sub builtin {
         }
 
         # (perl->clj o)
-    }
-    elsif ( $fn eq "perl->clj" ) {
-        $ast->error("perl->clj expects 1 argument") if $size != 2;
-        my $o = $self->_eval( $ast->second() );
-        $ast->error(
-            "perl->clj expects perlobject as argument but got " . $o->type() )
-          if $o->type() ne "perlobject";
-        return &perl2clj( $o->value() );
-
-        # (println obj)
     }
     elsif ( $fn eq "coro" ) {
         $ast->error("coro expects 1 argument") if $size != 2;
@@ -957,13 +939,9 @@ sub builtin {
         $ast->error("coro-main expects 0 argument") if $size != 1;
         return Language::LispPerl::Atom->new( "coroutine", $Coro::main );
     }
-    elsif ( $fn eq "trace-vars" ) {
-        $ast->error("trace-vars expects 0 argument") if $size != 1;
-        $self->trace_vars();
-        return $nil;
-    }
 
-    return $ast;
+    confess "Builtin $fn is not implemented";
+    #return $ast;
 }
 
 sub perlfunc_call {
@@ -1118,7 +1096,7 @@ sub clj2perl {
             my $cljf = Language::LispPerl::Seq->new("list");
             $cljf->append($ast);
             foreach my $arg (@args) {
-                $cljf->append( &perl2clj($arg) );
+                $cljf->append( $self->perl2clj($arg) );
             }
             return $self->clj2perl( $self->_eval($cljf) );
         };
@@ -1138,8 +1116,18 @@ sub wrap_perlobj {
     return Language::LispPerl::Atom->new( "perlobject", $v );
 }
 
+=head2 perl2clj
+
+Turn a native perl Object into a new L<Language::LispPerl::Atom>
+
+Usage:
+
+  my $new_atom = $evaler->perl2clj( .. perl object .. );
+
+=cut
+
 sub perl2clj {
-    my $v = shift;    #$ast->value();
+    my ($self, $v) = @_;
     if ( !defined ref($v) or ref($v) eq "" ) {
         return Language::LispPerl::Atom->new( "string", $v );
     }
@@ -1149,14 +1137,14 @@ sub perl2clj {
     elsif ( ref($v) eq "HASH" ) {
         my %m = ();
         foreach my $k ( keys %{$v} ) {
-            $m{$k} = &perl2clj( $v->{$k} );
+            $m{$k} = $self->perl2clj( $v->{$k} );
         }
         return Language::LispPerl::Atom->new( "map", \%m );
     }
     elsif ( ref($v) eq "ARRAY" ) {
         my @a = ();
         foreach my $i ( @{$v} ) {
-            push @a, &perl2clj($i);
+            push @a, $self->perl2clj($i);
         }
         return Language::LispPerl::Atom->new( "vector", \@a );
     }
@@ -1175,7 +1163,7 @@ sub trace_vars {
     print @{ $self->scopes() } . "\n";
     foreach my $vn ( keys %{ $self->current_scope() } ) {
         print
-          "$vn\n" # . Language::LispPerl::Printer::to_string(${$self->current_scope()}{$vn}->value()) . "\n";
+            "$vn\n" # . Language::LispPerl::Printer::to_string(${$self->current_scope()}{$vn}->value()) . "\n";
     }
 }
 
