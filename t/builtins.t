@@ -383,4 +383,21 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     ok( my $res = $lisp->eval(q|( trace-vars )|) );
 }
 
+{
+    # Perl
+    {
+        ok( my $res = $lisp->eval(q|(. require "Language::LispPerl" )|));
+        is( $res->value(), 'true');
+    }
+    {
+        ok( my $res = $lisp->eval(q|( def lisp nil ) ( set! lisp ( ->Language::LispPerl::Evaler new ) )|) );
+        is( $res->type(),  'perlobject' );
+    }
+    {
+        ok( my $res = $lisp->eval(q|( .Language::LispPerl::Evaler "eval" lisp "( + 1 2 )" )|) );
+        is( $res->type() , 'perlobject');
+        is( $res->value()->value() , 3 );
+    }
+}
+
 done_testing();

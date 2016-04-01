@@ -3,6 +3,7 @@ package Language::LispPerl::BuiltIns;
 use Moo;
 
 use Carp;
+use Class::Load;
 
 use Language::LispPerl::Atom;
 use Language::LispPerl::Printer;
@@ -146,7 +147,18 @@ Usage:
 
 sub has_function{
     my ($self, $function_name ) = @_;
-    return $self->functions()->{$function_name};
+    my $straight_func =  $self->functions()->{$function_name};
+    return $straight_func if $straight_func;
+
+    if( $function_name =~ /^(\.|->)(\S*)$/ ){
+        my $opts = { blessed => $1,
+                     namespace => $2 };
+        return sub{
+            my ($self, $ast, $symbol) = @_;
+            return $self->_impl_perlcall( $ast, $symbol, $opts );
+        };
+    }
+    return;
 }
 
 
@@ -163,6 +175,57 @@ Usage:
 sub call_function{
     my ($self , $code , @args ) = @_;
     return $code->( $self, @args);
+}
+
+sub _impl_perlcall{
+    my ($self, $ast, $symbol, $opts) = @_;
+    my $blessed = $opts->{blessed};
+    my $ns = $opts->{namespace} || 'Language::LispPerl';
+
+    my $size = $ast->size();
+
+    $ast->error(". expects > 1 arguments") if $size < 2;
+        $ast->error(
+            ". expects a symbol or keyword or stirng as the first argument but got "
+                . $ast->second()->type() )
+            if (  $ast->second()->type() ne "symbol"
+                  and $ast->second()->type() ne "keyword"
+                  and $ast->second()->type() ne "string" );
+
+    my $perl_func = $ast->second()->value();
+    if ( $perl_func eq "require" ) {
+        $ast->error(". require expects 1 argument") if $size != 3;
+        my $m = $ast->third();
+        if ( $m->type() eq "keyword" or $m->type() eq "symbol" ) {
+        }
+        elsif ( $m->type() eq "string" ) {
+            $m = $self->evaler()->_eval( $ast->third() );
+        }
+        else {
+            $ast->error(
+                ". require expects a string but got " . $m->type() );
+        }
+
+        my $mn = $m->value();
+
+        eval { Class::Load::load_class( $mn ); };
+        if( my $err = $@ ){
+            $ast->error("Cannot load perl package $mn: $err");
+        }
+        return $self->evaler()->true();
+    }
+    else {
+        my $meta = undef;
+        $meta = $self->evaler()->_eval( $ast->third() )
+            if defined $ast->third()
+            and $ast->third()->type() eq "meta";
+        $perl_func = \&{ $ns . "::" . $perl_func };
+        my @rest = $ast->slice( ( defined $meta ? 3 : 2 ) .. $size - 1 );
+        unshift @rest, Language::LispPerl::Atom->new( "string", $ns )
+            if $blessed eq "->";
+
+        return $self->evaler()->perlfunc_call( $perl_func, $meta, \@rest, $ast );
+    }
 }
 
 sub _impl_eval{

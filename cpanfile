@@ -1,5 +1,6 @@
 
 requires 'Carp';
+requires 'Class::Load' , '>= 0.23';
 requires 'File::ShareDir';
 requires 'Coro', '>= 6.29';
 requires 'Log::Any';

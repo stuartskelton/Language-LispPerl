@@ -814,61 +814,7 @@ sub builtin {
         return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn =~ /^(\.|->)(\S*)$/ ) {
-        my $blessed = $1;
-        my $ns      = $2;
-        $ast->error(". expects > 1 arguments") if $size < 2;
-        $ast->error(
-". expects a symbol or keyword or stirng as the first argument but got "
-              . $ast->second()->type() )
-          if (  $ast->second()->type() ne "symbol"
-            and $ast->second()->type() ne "keyword"
-            and $ast->second()->type() ne "string" );
-        my $perl_func = $ast->second()->value();
-        if ( $perl_func eq "require" ) {
-            $ast->error(". require expects 1 argument") if $size != 3;
-            my $m = $ast->third();
-            if ( $m->type() eq "keyword" or $m->type() eq "symbol" ) {
-            }
-            elsif ( $m->type() eq "string" ) {
-                $m = $self->_eval( $ast->third() );
-            }
-            else {
-                $ast->error(
-                    ". require expects a string but got " . $m->type() );
-            }
-            my $mn = $m->value();
-            $mn =~ s/::/\//g;
-            foreach my $ext ( "", ".pm" ) {
-                if ( -f $mn . $ext ) {
-                    require $mn . $ext;
-                    return $true;
-                }
-                foreach my $p (@INC) {
-                    if ( -f "$p/$mn$ext" ) {
-                        require "$p/$mn$ext";
-                        return $true;
-                    }
-                }
-            }
-            $ast->error("cannot find $mn");
-        }
-        else {
-            $ns = "Language::LispPerl" if !defined $ns or $ns eq "";
-            my $meta = undef;
-            $meta = $self->_eval( $ast->third() )
-              if defined $ast->third()
-              and $ast->third()->type() eq "meta";
-            $perl_func = \&{ $ns . "::" . $perl_func };
-            my @rest = $ast->slice( ( defined $meta ? 3 : 2 ) .. $size - 1 );
-            unshift @rest, Language::LispPerl::Atom->new( "string", $ns )
-              if $blessed eq "->";
-            return $self->perlfunc_call( $perl_func, $meta, \@rest, $ast );
-        }
-
-        # (perl->clj o)
-    }
-    elsif ( $fn eq "coro" ) {
+    if ( $fn eq "coro" ) {
         $ast->error("coro expects 1 argument") if $size != 2;
         my $b = $self->_eval( $ast->second() );
         $ast->error(
