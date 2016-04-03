@@ -11,6 +11,8 @@ use Language::LispPerl;
 
 my $test = Language::LispPerl::Evaler->new();
 
+$test->builtins()->apply_role('Language::LispPerl::Role::BuiltIns::Coro');
+
 ok($test->load("core"), 'load core');
 
 ok($test->load("t/basic_syntax.clp"), 'basic syntax');

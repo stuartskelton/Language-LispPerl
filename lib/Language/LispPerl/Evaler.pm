@@ -51,6 +51,21 @@ has 'builtins' => ( is => 'ro', default => sub{
                         return Language::LispPerl::BuiltIns->new({ evaler => $self });
                     });
 
+=head2 new_instance
+
+Returns a new instance of this with the same builtins and everything else reset.
+
+Usage:
+
+ my $other_evaler = $this->new_instance();
+
+=cut
+
+sub new_instance{
+    my ($self) = @_;
+    return ref($self)->new( { builtins => $self->builtins() } );
+}
+
 sub clear_exception{
     my ($self) = @_;
     $self->{exception} = undef;
@@ -301,81 +316,6 @@ sub read {
     return $res;
 }
 
-our $builtin_funcs = {
-    "eval"              => 1,
-    "syntax"            => 1,
-    "catch"             => 1,
-    "exception-label"   => 1,
-    "exception-message" => 1,
-    "throw"             => 1,
-    "def"               => 1,
-    "set!"              => 1,
-    "let"               => 1,
-    "fn"                => 1,
-    "defmacro"          => 1,
-    "gen-sym"           => 1,
-    "list"              => 1,
-    "car"               => 1,
-    "cdr"               => 1,
-    "cons"              => 1,
-    "if"                => 1,
-    "while"             => 1,
-    "begin"             => 1,
-    "length"            => 1,
-    "reverse"           => 1,
-    "object-id"         => 1,
-    "type"              => 1,
-    "perlobj-type"      => 1,
-    "meta"              => 1,
-    "apply"             => 1,
-    "append"            => 1,
-    "keys"              => 1,
-    "namespace-begin"   => 1,
-    "namespace-end"     => 1,
-    "perl->clj"         => 1,
-    "clj->string"       => 1,
-    "!"                 => 1,
-    "not"               => 1,
-    "+"                 => 1,
-    "-"                 => 1,
-    "*"                 => 1,
-    "/"                 => 1,
-    "%"                 => 1,
-    "=="                => 1,
-    "!="                => 1,
-    ">"                 => 1,
-    ">="                => 1,
-    "<"                 => 1,
-    "<="                => 1,
-    "."                 => 1,
-    "->"                => 1,
-
-    "eq"                => 1,
-    "ne"                => 1,
-    "lt"                => 1,
-    "gt"                => 1,
-
-    "and"               => 1,
-    "or"                => 1,
-    "equal"             => 1,
-    "require"           => 1,
-    "read"              => 1,
-    "println"           => 1,
-    "coro"              => 1,
-    "coro-suspend"      => 1,
-    "coro-sleep"        => 1,
-    "coro-yield"        => 1,
-    "coro-resume"       => 1,
-    "coro-wake"         => 1,
-    "coro-join"         => 1,
-    "coro-current"      => 1,
-    "coro-main"         => 1,
-    "xml-name"          => 1,
-    "trace-vars"        => 1
-};
-
-
-
 our $empty_list = Language::LispPerl::Seq->new("list");
 our $true       = Language::LispPerl::Atom->new( "bool", "true" );
 our $false      = Language::LispPerl::Atom->new( "bool", "false" );
@@ -465,7 +405,7 @@ sub bind {
             $name = $1;
         }
         return $ast
-          if exists $builtin_funcs->{$name} or $name =~ /^(\.|->)\S+$/;
+          if $self->word_is_reserved( $name );
         my $var = $self->var($name);
         $ast->error("unbound symbol") if !defined $var;
         return $var->value();
@@ -793,7 +733,7 @@ sub _eval {
 Is the given word reserved?
 Usage:
 
- if( $this->word_is_reserved() ){
+ if( $this->word_is_reserved('bla') ){
    ...
  }
 
@@ -801,93 +741,19 @@ Usage:
 
 sub word_is_reserved{
     my ($self, $word ) = @_;
-    return $builtin_funcs->{$word} || ( $word =~ /^(\.|->)\S+$/ );
+    return $self->builtins()->has_function( $word );
 }
 
 sub builtin {
     my ($self, $f , $ast) = @_;
 
-    my $size = $ast->size();
     my $fn = $f->value();
 
     if( my $function = $self->builtins()->has_function( $fn ) ){
         return $self->builtins()->call_function( $function , $ast , $f );
     }
 
-    if ( $fn eq "coro" ) {
-        $ast->error("coro expects 1 argument") if $size != 2;
-        my $b = $self->_eval( $ast->second() );
-        $ast->error(
-            "core expects a function as argument but got " . $b->type() )
-          if $b->type() ne "function";
-        my $coro = new Coro sub {
-            my $evaler = Language::LispPerl::Evaler->new();
-            my $fc     = Language::LispPerl::Seq->new("list");
-            $fc->append($b);
-            $evaler->_eval($fc);
-        };
-        $coro->ready();
-        return Language::LispPerl::Atom->new( "coroutine", $coro );
-    }
-    elsif ( $fn eq "coro-suspend" ) {
-        $ast->error("coro-suspend expects 1 argument") if $size != 2;
-        my $coro = $self->_eval( $ast->second() );
-        $ast->error( "coro-suspend expects a coroutine as argument but got "
-              . $coro->type() )
-          if $coro->type() ne "coroutine";
-        $coro->value()->suspend();
-        return $coro;
-    }
-    elsif ( $fn eq "coro-sleep" ) {
-        $ast->error("coro-sleep expects 0 argument") if $size != 1;
-        $Coro::current->suspend();
-        cede;
-        return Language::LispPerl::Atom->new( "coroutine", $Coro::current );
-    }
-    elsif ( $fn eq "coro-yield" ) {
-        $ast->error("coro-yield expects 0 argument") if $size != 1;
-        cede;
-        return Language::LispPerl::Atom->new( "coroutine", $Coro::current );
-    }
-    elsif ( $fn eq "coro-resume" ) {
-        $ast->error("coro-resume expects 1 argument") if $size != 2;
-        my $coro = $self->_eval( $ast->second() );
-        $ast->error( "coro-resume expects a coroutine as argument but got "
-              . $coro->type() )
-          if $coro->type() ne "coroutine";
-        $coro->value()->resume();
-        $coro->value()->cede_to();
-        return $coro;
-    }
-    elsif ( $fn eq "coro-wake" ) {
-        $ast->error("coro-wake expects 1 argument") if $size != 2;
-        my $coro = $self->_eval( $ast->second() );
-        $ast->error( "coro-wake expects a coroutine as argument but got "
-              . $coro->type() )
-          if $coro->type() ne "coroutine";
-        $coro->value()->resume();
-        return $coro;
-    }
-    elsif ( $fn eq "join-coro" ) {
-        $ast->error("join-coro expects 1 argument") if $size != 2;
-        my $coro = $self->_eval( $ast->second() );
-        $ast->error( "join-coro expects a coroutine as argument but got "
-              . $coro->type() )
-          if $coro->type() ne "coroutine";
-        $coro->value()->join();
-        return $coro;
-    }
-    elsif ( $fn eq "coro-current" ) {
-        $ast->error("coro-current expects 0 argument") if $size != 1;
-        return Language::LispPerl::Atom->new( "coroutine", $Coro::current );
-    }
-    elsif ( $fn eq "coro-main" ) {
-        $ast->error("coro-main expects 0 argument") if $size != 1;
-        return Language::LispPerl::Atom->new( "coroutine", $Coro::main );
-    }
-
-    confess "Builtin $fn is not implemented";
-    #return $ast;
+    confess "Builtin function '$fn' is not implemented";
 }
 
 sub perlfunc_call {

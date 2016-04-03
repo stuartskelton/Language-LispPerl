@@ -8,6 +8,8 @@ use Class::Load;
 use Language::LispPerl::Atom;
 use Language::LispPerl::Printer;
 
+use Role::Tiny qw//;
+
 =head1 NAME
 
 Language::LispPerl::BuiltIns - Default builtin functions collection
@@ -116,22 +118,25 @@ has 'functions' => (
             #IO
             "println"           => \&_impl_println,
 
-            "trace-vars"        => \&_impl_trace_vars,
-
-            # Coro stuff
-            # "coro"              => 1,
-            # "coro-suspend"      => 1,
-            # "coro-sleep"        => 1,
-            # "coro-yield"        => 1,
-            # "coro-resume"       => 1,
-            # "coro-wake"         => 1,
-            # "coro-join"         => 1,
-            # "coro-current"      => 1,
-            # "coro-main"         => 1,
-
+            "trace-vars"        => \&_impl_trace_vars
         };
     }
 );
+
+=head2 apply_role
+
+Apply the given builtin Role to this object.
+
+Usage (install Coroutine builtin functions):
+
+ $this->apply_role('Language::LispPerl::Role::BuiltIns::Coro');
+
+=cut
+
+sub apply_role{
+    my ($self, $role) = @_;
+    Role::Tiny->apply_roles_to_object( $self, $role );
+}
 
 =head2 has_function
 
