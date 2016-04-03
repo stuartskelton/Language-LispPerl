@@ -342,7 +342,7 @@ Usage:
 
 sub eval {
     my ($self, $str) = @_;
-    unless( length( $str ) ){
+    unless( length( defined( $str ) ? $str : '' ) ){
         return $nil;
     }
 
