@@ -5,19 +5,7 @@ use strict;
 use warnings;
 use File::Basename;
 use File::Spec;
-
-require Exporter;
-
 use Language::LispPerl::Evaler;
-
-our @ISA = qw(Exporter);
-
-# This allows declaration	use Language::LispPerl ':all';
-our %EXPORT_TAGS = ( all => [] );
-
-our @EXPORT_OK = @{ $EXPORT_TAGS{'all'} };
-
-our @EXPORT = qw();
 
 
 # Preloaded methods go here.
