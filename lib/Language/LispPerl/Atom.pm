@@ -1,7 +1,5 @@
 package Language::LispPerl::Atom;
 
-use strict;
-use warnings;
 
 use Language::LispPerl::Printer;
 use Language::LispPerl::Logger;
