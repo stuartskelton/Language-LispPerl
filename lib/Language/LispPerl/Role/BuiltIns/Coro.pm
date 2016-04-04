@@ -11,6 +11,18 @@ use Language::LispPerl::Seq;
 
 Language::LispPerl::Role::BuiltIns::Coro - A role with coro primitives for the BuiltIns objects.
 
+=head1 SYNOPSIS
+
+   my $lisp = Language::LispPerl::Evaler->new();
+
+   $lisp->builtins()->apply_role('Language::LispPerl::Role::BuiltIns::Coro');
+
+   .. lisp now implements the coro functions.
+
+=head2 FUNCTIONS
+
+To be documented. Look at the source code for now..
+
 =cut
 
 my $_CORO_FUNCTIONS = {

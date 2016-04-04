@@ -6,6 +6,11 @@ use warnings;
 
 use Language::LispPerl::Evaler;
 
+sub true{ return Language::LispPerl::Evaler->true(); }
+sub false{ return Language::LispPerl::Evaler->false(); }
+sub nil{ return Language::LispPerl::Evaler->nil(); }
+sub empty_list{ return Language::LispPerl::Evaler->empty_list(); }
+
 1;
 
 __END__
@@ -16,6 +21,14 @@ Language::LispPerl - A lisp in pure perl with Perl bindings.
 
 =head1 SYNOPSIS
 
+  use Language::LispPerl::Evaler;
+
+  my $lisp = Language::LispPerl::Evaler->new();
+
+  # Load core functions and macros
+  $lisp->load("core.clp");
+
+  my $res = $lisp->eval(q|
         (defmacro defn [name args & body]
           `(def ~name
              (fn ~args ~@body)))
@@ -24,6 +37,9 @@ Language::LispPerl - A lisp in pure perl with Perl bindings.
           (println arg))
 
         (foo "hello world!") ;comment here
+      |);
+
+  # $res is the last lisp object evaluated.
 
 =head1 DESCRIPTION
 
@@ -32,9 +48,9 @@ It is a fork of L<CljPerl> that focuses on making embedding
 lisp code in your Perl written software straightforward.
 
 Language::ListPerl also bridges between lisp to perl. We can program in lisp and
-make use of the great resource from CPAN.
+make use of the great resource from CPAN or from your application packages.
 
-=head2 BINDING Perl function to Lisp
+=head2 BINDING Perl functions to Lisp
 
 =head3 Lisp <-> Perl
 
@@ -42,55 +58,54 @@ Language::LispPerl is hosted on Perl. Any object of Language::LispPerl can be pa
 
 Here is an example of such binding taken from this module:
 
-=head4 Perl functions in Language::LispPerl;
+=head4 PURE Perlfunctions in My::App::LispFunctions:
 
-	package Language::LispPerl;
+	package My::App::LispFunctions;
 
-	sub open {
-	  my $file = shift;
-	  my $cb = shift;
-	  my $fh;
-	  open $fh, $file;
-	  &{$cb}($fh);
-	  close $fh;
+	sub do_stuff {
+       my ($x , $y ) = @_;
+       ..
+       return;
 	}
 
-	sub puts {
-	  my $fh = shift;
-	  my $str = shift;
-	  print $fh $str;
+    sub say_stuff {
+       my ($x , $y ) = @_;
+       ..
+       return $string_or_number;
+    }
+
+	sub is_stuff {
+       ..
+       # Note that here we return a raw lisp object.
+       return Language::LispPerl->true();
 	}
 
-	sub readline {
-	  my $fh = shift;
-	  return <$fh>;
-	}
+=head4 Binding to these functions in myapp.clp (living in share/lisp for instance):
 
-=head4 Binding to these functions from file.clp
+     ;; These lisp binding functions will live
+     ;; in the namespace 'myapp'
 
-        ;; These lisp binding functions will live
-        ;; in the namespace 'file'
-	(ns file
-          (. require Language::LispPerl)
+     ;; Note that you need core.clp to be loaded in the Evaler.
 
-	  (defn open [file cb]
-	    (.Language::LispPerl open file cb))
+     (ns myapp
+       (. require My::App::LispFunctions)
 
-	  (defn >> [fh str]
-	    (.Language::LispPerl puts fh str))
+       (defn do-stuff [x y]
+	      (.My::App::LispFunctions do_stuff  ^{:return "nil"}  x y ))
 
-	  (defn << [fh]
-	    (.Language::LispPerl readline fh)))
+       (defn say-stuff [x y]
+	    (.My::App::LispFunctions say_stuff ^{:return "scalar"} x y ))
+
+	   (defn is-stuff [x y]
+	    (.My::App::LispFunctions is_stuff ^{:return "raw"} x y)))
 
 =head4 Usage in lisp space:
 
-	(file#open ">t.txt" (fn [f]
-	  (file#>> f "aaa")))
+     ( require "myapp.clp" ) ;; Or in Perl $lisp->load("myapp.clp");
+     ( myapp#do-stuff .. .. ) ;; Note the myapp# namespace marker.
 
-	(file#open "<t.txt" (fn [f]
-	  (println (perl->clj (file#<< f)))))
 
-=head3 Importing and using any Perl package.
+=head3 Importing and using any Perl package (without prior binding)
 
 =head4 An example which creates a timer with AnyEvent.
 
@@ -122,7 +137,7 @@ Here is an example of such binding taken from this module:
 	foo, foo#bar
 
    * Literals
- 
+
    * Strings :
 
 	"foo", "\"foo\tbar\n\""
@@ -133,10 +148,11 @@ Here is an example of such binding taken from this module:
 
    * Booleans :
 
-	true, false
+	true, false . Or from Perl: Language::LispPerl->true() and Language::LispPerl->false()
+
    * Nil :
 
-        nil
+        nil . Or from Perl: Language::LispPerl->nil();
 
    * Keywords :
 
@@ -348,7 +364,7 @@ Here is an example of such binding taken from this module:
 
 	(trace-vars)
 
-=head4 Core Functions (defined in core.clp
+=head4 Core Functions (defined in core.clp)
 
  * use-lib : append path into Perl and Language::LispPerl files' searching paths.
 
@@ -396,11 +412,17 @@ Current author: Jerome Eteve ( JETEVE )
 
 Original author: Wei Hu, E<lt>huwei04@hotmail.comE<gt>
 
-=head1 COPYRIGHT AND LICENSE
+=head1 COPYRIGHT
 
 Copyright 2016 Jerome Eteve. All rights Reserved.
 
 Copyright 2013 Wei Hu. All Rights Reserved.
+
+=head1 ACKNOWLEDGEMENTS
+
+This package as been released with the support of L<http://broadbean.com>
+
+=Head1 LICENSE
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

@@ -1,201 +1,424 @@
-# CljPerl
+# NAME
 
-CljPerl is a Lisp implemented by Perl. It borrows the idea from Clojure,
-which makes a seamless connection with Java packages.
-Like Java, Perl has huge number of CPAN packages.
-They are amazing resources. We should make use of them as possible.
-However, programming in Lisp is more insteresting.
-CljPerl is a bridge between Lisp and Perl. We can program in Lisp and
-make use of the great resources from CPAN.
+Language::LispPerl - A lisp in pure perl with Perl bindings.
 
-## Key features
+# SYNOPSIS
 
- * Seamless connection with Perl.
- * Coroutine.
- * Actor.(experimental)
- * Native XML form which could be used to create web page template.
+    use Language::LispPerl::Evaler;
 
-## Example
+    my $lisp = Language::LispPerl::Evaler->new();
 
-	;; file t.clp
-	(defmacro defn [name args & body]
-	  `(def ~name
-	     (fn ~args ~@body)))
-	
-	(defn foo [arg]
-	  (println arg))
-	
-	(foo "hello world!") ;comment here
-	
-	(foo (+ 1 2))
-	
-	(.CljPerl print "Hi\n")
-	
-	(. print "Guy\n")
+    # Load core functions and macros
+    $lisp->load("core.clp");
 
-	(defmulti mf type)
-	(defmethod mf "string" [a] (println "string"))
-	(defmethod mf "keyword" [a] (println "keyword"))
-	(mf "test")
-	(mf :test)
+    my $res = $lisp->eval(q|
+          (defmacro defn [name args & body]
+            `(def ~name
+               (fn ~args ~@body)))
 
-	(def c (coroutine
-	  (println "b")
-	  (coro-sleep)
-	  (println "d")))
+          (defn foo [arg]
+            (println arg))
 
-	(println "a")
-	(coro-resume c)
-	(println "c")
-	(coro-resume c)
+          (foo "hello world!") ;comment here
+        |);
 
+    # $res is the last lisp object evaluated.
 
-	(def a (actor
-	  (println "a")
-	  (actor-send (actor-receive) "exit")
-	  (println "b")))
+# DESCRIPTION
 
-	(actor-send a (actor-self))
-	(println (actor-receive "exit")
+Language::LispPerl is a pure Perl lisp interpreter.
+It is a fork of [CljPerl](https://metacpan.org/pod/CljPerl) that focuses on making embedding
+lisp code in your Perl written software straightforward.
 
-	------------------
+Language::ListPerl also bridges between lisp to perl. We can program in lisp and
+make use of the great resource from CPAN or from your application packages.
 
-	> bin/cljp t.clp
+## BINDING Perl functions to Lisp
 
-## Install
+### Lisp <-> Perl
 
-	cpan install CljPerl
+Language::LispPerl is hosted on Perl. Any object of Language::LispPerl can be passed into Perl and vice versa including code.
 
-## Lisp <-> Perl
+Here is an example of such binding taken from this module:
 
-CljPerl is hosted on Perl. Any object of CljPerl can be passed into Perl and vice versa including code.
+#### PURE Perlfunctions in My::App::LispFunctions:
 
-An example of using Perl's IO functions.
+        package My::App::LispFunctions;
 
-####### Perl functions in CljPerl.pm
+        sub do_stuff {
+       my ($x , $y ) = @_;
+       ..
+       return;
+        }
 
-	package CljPerl;
-	
-	sub open {
-	  my $file = shift;
-	  my $cb = shift;
-	  my $fh;
-	  open $fh, $file;
-	  &{$cb}($fh);
-	  close $fh;
-	}
-	
-	sub puts {
-	  my $fh = shift;
-	  my $str = shift;
-	  print $fh $str;
-	}
-	
-	sub readline {
-	  my $fh = shift;
-	  return <$fh>;
-	}
-	
-####### CljPerl functions in core.clp
+    sub say_stuff {
+       my ($x , $y ) = @_;
+       ..
+       return $string_or_number;
+    }
 
-	(ns file
-	  (defn open [file cb]
-	    (. open file cb))
-	
-	  (defn >> [fh str]
-	    (. puts fh str))
-	
-	  (defn << [fh]
-	    (. readline fh)))
+        sub is_stuff {
+       ..
+       # Note that here we return a raw lisp object.
+       return Language::LispPerl->true();
+        }
 
-####### Test
+#### Binding to these functions in myapp.clp (living in share/lisp for instance):
 
-	(file#open ">t.txt" (fn [f]
-	  (file#>> f "aaa")))
-	
-	(file#open "<t.txt" (fn [f]
-	  (println (perl->clj (file#<< f)))))
+     ;; These lisp binding functions will live
+     ;; in the namespace 'myapp'
 
-An advanced example which creates a timer with AnyEvent.
+     ;; Note that you need core.clp to be loaded in the Evaler.
 
-	(. require AnyEvent)
+     (ns myapp
+       (. require My::App::LispFunctions)
 
-	(def cv (->AnyEvent condvar))
-	
-	(def count 0)
-	
-	(def t (->AnyEvent timer
-	  {:after 1
-	   :interval 1
-	   :cb (fn [ & args]
-	         (println count)
-	         (set! count (+ count 1))
-	         (if (>= count 10)
-	           (set! t nil)))}))
-	
-	(.AnyEvent::CondVar::Base recv cv)
+       (defn do-stuff [x y]
+              (.My::App::LispFunctions do_stuff  ^{:return "nil"}  x y ))
 
-Another example which uses AnyEvent::HTTPD to create a http server.
+       (defn say-stuff [x y]
+            (.My::App::LispFunctions say_stuff ^{:return "scalar"} x y ))
 
-	(require anyevent-httpd)
+           (defn is-stuff [x y]
+            (.My::App::LispFunctions is_stuff ^{:return "raw"} x y)))
 
-	(anyevent-httpd#start-server {:port 9090}
-	  {"/"     #[html #[body #[h1 "Hello World!"] #[a ^{:href "/test"} "Another test page"]]]
-	  "/test"  #[html #[body #[h1 "Test page"] #[a ^{:href "/"} "Back to the main page"]]]})
+#### Usage in lisp space:
 
-## Documents
+     ( require "myapp.clp" ) ;; Or in Perl $lisp->load("myapp.clp");
+     ( myapp#do-stuff .. .. ) ;; Note the myapp# namespace marker.
 
-See APIs.md
+### Importing and using any Perl package (without prior binding)
 
-## Quoi
+#### An example which creates a timer with AnyEvent.
 
-Quoi is a simple web framework by CljPerl.
+        (. require AnyEvent)
 
-#### APP : app.clj
+        (def cv (->AnyEvent condvar))
 
-	; load quoi
-	(require quoi)
+        (def count 0)
 
-	; load quoi menu utils
-	(require quoi/menu)
+        (def t (->AnyEvent timer
+          {:after 1
+           :interval 1
+           :cb (fn [ & args]
+                 (println count)
+                 (set! count (+ count 1))
+                 (if (>= count 10)
+                   (set! t nil)))}))
 
-	; create a menu
-	(def menu (quoi#menu
-	  ["Home" "home" (quoi#file "index.clp")]
-	  ["About" "about" (quoi#file "about.clp")]))
+        (.AnyEvent::CondVar::Base recv cv)
 
-	; set the index page.
-	(quoi#page "/$"
-	  (quoi#file "index.clp"))
+### This lisp implementation
 
-	(quoi#start {:port 9090})
+#### Atoms
 
-#### Template : index.clp
+    * Reader forms
 
-	#[span
-	  #[h1 "hello world"]
-	  #[p "url: " (#::path S)]
-	  #[p "method: " (#::method S)]
-	  #[p "params: " (clj->string (#::params S))]
-	  #[p "headers: " (clj->string (#::headers S))] 
-	  menu]
+      * Symbols :
 
-#### Run
+           foo, foo#bar
 
-	bin/cljp app.clj
+      * Literals
 
-#### XML selector/translator
+      * Strings :
 
-	($ "#foo" #[html "hello" #[a ^{:id "foo"} "foo"]]
-	  (fn [xml]
-	    #[a "bar"])) ; <html>hello<span>bar</span></html>
+           "foo", "\"foo\tbar\n\""
 
-	($ "[id=foo]" #[html "hello" #[a ^{:id "foo"} "foo"]]
-	  (fn [xml]
-	    #[span "bar"])) ; <html>hello<span>bar</bar></html>
+      * Numbers :
 
-#### Quoi demo
+           1, -2, 2.5
 
- * A web server hosted on OpenShift: [quoi-wehu.rhcloud.com](http://quoi-wehu.rhcloud.com)
- * Source code: [quoi](https://github.com/wehu/quoi)
+      * Booleans :
 
+           true, false . Or from Perl: Language::LispPerl->true() and Language::LispPerl->false()
+
+      * Nil :
+
+           nil . Or from Perl: Language::LispPerl->nil();
+
+      * Keywords :
+
+           :foo
+
+    * Lists :
+
+           (foo bar)
+
+    * Vectors :
+
+           [foo bar]
+
+    * Maps :
+
+           {:key1 value1 :key2 value2 "key3" value3}
+
+#### Macro charaters
+
+    * Quote (') :
+
+           '(foo bar)
+
+    * Comment (;) :
+
+           ; comment
+
+    *  Dispatch (#) :
+
+      * Accessor (:) :
+
+           #:0 ; index accessor
+           #:"key" ; key accessor
+           #::key  ; key accessor
+
+      * Sender (!) :
+
+           #!"foo"
+
+      * XML ([) :
+
+           #[body ^{:attr "value"}]
+
+    * Metadata (^) :
+
+           ^{:key value}
+
+    * Syntax-quote (`) :
+
+           `(foo bar)
+
+    * Unquote (~) :
+
+           `(foo ~bar)
+
+    * Unquote-slicing (~@) :
+
+           `(foo ~@bar)
+
+#### Builtin  lisp Functions
+
+    * list :
+
+           (list 'a 'b 'c) ;=> '(a b c)
+
+    * car :
+
+           (car '(a b c))  ;=> 'a
+
+    * cdr :
+
+           (cdr '(a b c))  ;=> '(b c)
+
+    * cons :
+
+           (cons 'a '(b c)) ;=> '(a b c)
+
+    * key accessor :
+
+           (#::a {:a 'a :b 'a}) ;=> 'a
+
+    * keys :
+
+           (keys {:a 'a :b 'b}) ;=> (:a :b)
+
+    * index accessor :
+
+           (#:1 ['a 'b 'c]) ;=> 'b
+
+    * sender :
+
+           (#:"foo" ['a 'b 'c]) ;=> (foo ['a 'b 'c])
+
+    * xml :
+
+           #[html ^{:class "markdown"} #[body "helleworld"]]
+
+    * length :
+
+           (length '(a b c)) ;=> 3
+           (length ['a 'b 'c]) ;=> 3
+           (length "abc") ;=> 3
+
+    * append :
+
+           (append '(a b) '(c d)) ;=> '(a b c d)
+           (append ['a 'b] ['c 'd]) ;=> ['a 'b 'c 'd]
+           (append "ab" "cd") ;=> "abcd"
+
+    * type :
+
+           (type "abc") ;=> "string"
+           (type :abc)  ;=> "keyword"
+           (type {})    ;=> "map"
+
+    * meta :
+
+           (meta foo ^{:m 'b})
+           (meta foo) ;=> {:m 'b}
+
+    * fn :
+
+           (fn [arg & args]
+             (println 'a))
+
+    * apply :
+
+           (apply list '(a b c)) ;=> '(a b c)
+
+    * eval :
+
+           (eval "(+ 1 2)")
+
+    * require :
+
+           (require "core")
+
+    * def :
+
+           (def foo "bar")
+           (def ^{:k v} foo "bar")
+
+    * set! :
+
+           (set! foo "bar")
+
+    * let :
+
+           (let [a 1
+                 b a]
+             (println b)) 
+
+    * defmacro :
+
+           (defmacro foo [arg & args]
+             `(println ~arg)
+             `(list ~@args))
+
+    * if :
+
+           (if (> 1 0)
+             (println true)
+             (println false))
+
+           (if true
+             (println true))
+
+    * while :
+
+           (while true
+             (println true))
+
+    * begin :
+
+           (begin
+             (println 'foo)
+             (println 'bar))
+
+    * perl->clj :
+
+    * ! not :
+
+           (! true) ;=> false
+
+    * + - * / % == != >= <= > < : only for number.
+
+    * eq ne : only for string.
+
+    * equal : for all objects.
+
+    * . : (.[perl namespace] method [^meta] args ...)
+           A meta can be specifed to control what type of value should be passed into perl function.
+           type : "scalar" "array" "hash" "ref" "nil"
+           ^{:return type
+             :arguments [type ...]}
+
+           (.Language::LispPerl print "foo")
+           (.Language::LispPerl print ^{:return "nil" :arguments ["scalar"]} "foo") ; return nil and pass first argument as a scalar
+
+    * -> : (->[perl namespace] method args ...)
+      Like '.', but this will pass perl namespace as first argument to perl method.
+
+    * println
+
+           (println {:a 'a})
+
+    * trace-vars : Trace the variables in current frame.
+
+           (trace-vars)
+
+#### Core Functions (defined in core.clp)
+
+    * use-lib : append path into Perl and Language::LispPerl files' searching paths.
+
+           (use-lib "path")
+
+    * ns : Language::LispPerl namespace.
+
+           (ns "foo"
+             (println "bar"))
+
+    * defn :
+
+           (defn foo [arg & args]
+             (println arg))
+
+    * defmulti :
+
+    * defmethod :
+
+    * reduce :
+
+    * map :
+
+    * file#open : open a file with a callback.
+
+           (file#open ">file"
+             (fn [fh]
+               (file#>> fn "foo")))
+
+    * file#<< : read a line from a file handler.
+
+           (file#<< fh)
+
+    * file#>> : write a string into a file handler.
+
+           (file#>> fh "foo")
+
+# SEE ALSO
+
+[CljPerl](https://metacpan.org/pod/CljPerl)
+
+# AUTHOR
+
+Current author: Jerome Eteve ( JETEVE )
+
+Original author: Wei Hu, <huwei04@hotmail.com>
+
+# COPYRIGHT
+
+Copyright 2016 Jerome Eteve. All rights Reserved.
+
+Copyright 2013 Wei Hu. All Rights Reserved.
+
+# ACKNOWLEDGEMENTS
+
+This package as been released with the support of [http://broadbean.com](http://broadbean.com)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+# POD ERRORS
+
+Hey! **The above document had some coding errors, which are explained below:**
+
+- Around line 425:
+
+    Unknown directive: =Head1

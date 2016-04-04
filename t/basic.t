@@ -15,5 +15,9 @@ is( $var->value() , 123 );
 is ( $lisp->eval()->type() , 'nil' );
 is( !! $lisp->word_is_reserved('eval') , 1 );
 
+ok( Language::LispPerl->true() );
+ok( Language::LispPerl->false() );
+ok( Language::LispPerl->nil() );
+ok( Language::LispPerl->empty_list() );
 
 done_testing();
