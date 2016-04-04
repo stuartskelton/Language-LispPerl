@@ -8,6 +8,8 @@ use Class::Load;
 use Language::LispPerl::Atom;
 use Language::LispPerl::Printer;
 
+use Language::LispPerl::CoreBindings;
+
 use Role::Tiny qw//;
 
 =head1 NAME
@@ -185,7 +187,7 @@ sub call_function{
 sub _impl_perlcall{
     my ($self, $ast, $symbol, $opts) = @_;
     my $blessed = $opts->{blessed};
-    my $ns = $opts->{namespace} || 'Language::LispPerl';
+    my $ns = $opts->{namespace} || 'Language::LispPerl::CoreBindings';
 
     my $size = $ast->size();
 

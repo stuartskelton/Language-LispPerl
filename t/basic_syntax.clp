@@ -89,7 +89,7 @@
 (println (#:1 m))
 
 
-(.Language::LispPerl print "aaa\n")
+(. print "aaa\n")
 
 (println (. print "bbb\n"))
 
