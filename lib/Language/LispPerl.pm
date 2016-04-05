@@ -17,7 +17,7 @@ __END__
 
 =head1 NAME
 
-Language::LispPerl - A lisp in pure perl with Perl bindings.
+Language::LispPerl - A lisp in pure Perl with perl bindings.
 
 =head1 SYNOPSIS
 
@@ -48,15 +48,15 @@ It is a fork of L<CljPerl> that focuses on making embedding
 lisp code in your Perl written software straightforward.
 
 Language::ListPerl also bridges between lisp to perl. We can program in lisp and
-make use of the great resource from CPAN or from your application packages.
+make use of CPAN or your application packages functions by implementing bindings.
 
 =head2 BINDING Perl functions to Lisp
 
 =head3 Lisp <-> Perl
 
-Language::LispPerl is hosted on Perl. Any object of Language::LispPerl can be passed into Perl and vice versa including code.
+Here is how to bind to your own Perl functions from lisp.
 
-Here is an example of such binding taken from this module:
+This assumes that your perl functions live in My::App::LispFunctions
 
 =head4 PURE Perlfunctions in My::App::LispFunctions:
 
@@ -125,6 +125,10 @@ Here is an example of such binding taken from this module:
 	           (set! t nil)))}))
 
 	(.AnyEvent::CondVar::Base recv cv)
+
+=head3 Implemeting your own native Lisp functions
+
+.TBC.
 
 =head3 This lisp implementation
 

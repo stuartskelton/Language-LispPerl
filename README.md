@@ -1,6 +1,6 @@
 # NAME
 
-Language::LispPerl - A lisp in pure perl with Perl bindings.
+Language::LispPerl - A lisp in pure Perl with perl bindings.
 
 # SYNOPSIS
 
@@ -31,15 +31,15 @@ It is a fork of [CljPerl](https://metacpan.org/pod/CljPerl) that focuses on maki
 lisp code in your Perl written software straightforward.
 
 Language::ListPerl also bridges between lisp to perl. We can program in lisp and
-make use of the great resource from CPAN or from your application packages.
+make use of CPAN or your application packages functions by implementing bindings.
 
 ## BINDING Perl functions to Lisp
 
 ### Lisp <-> Perl
 
-Language::LispPerl is hosted on Perl. Any object of Language::LispPerl can be passed into Perl and vice versa including code.
+Here is how to bind to your own Perl functions from lisp.
 
-Here is an example of such binding taken from this module:
+This assumes that your perl functions live in My::App::LispFunctions
 
 #### PURE Perlfunctions in My::App::LispFunctions:
 
@@ -107,6 +107,10 @@ Here is an example of such binding taken from this module:
                    (set! t nil)))}))
 
         (.AnyEvent::CondVar::Base recv cv)
+
+### Implemeting your own native Lisp functions
+
+.TBC.
 
 ### This lisp implementation
 
@@ -419,6 +423,6 @@ limitations under the License.
 
 Hey! **The above document had some coding errors, which are explained below:**
 
-- Around line 425:
+- Around line 429:
 
     Unknown directive: =Head1
