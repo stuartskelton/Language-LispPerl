@@ -8,3 +8,6 @@ MYMETA.*
 # Dzil stuff
 .build
 Language-LispPerl-*
+
+#
+.cse*
