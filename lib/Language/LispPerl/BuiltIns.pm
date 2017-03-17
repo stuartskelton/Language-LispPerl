@@ -27,6 +27,7 @@ has 'functions' => (
             # Completeness
             "eval"              => \&_impl_eval,
             "syntax"            => \&_impl_syntax,
+            "quote"             => \&_impl_quote,
 
             # Lisp file inclusion operation
             "require"           => \&_impl_require,
@@ -249,6 +250,12 @@ sub _impl_syntax{
     my ($self, $ast) = @_;
     $ast->error("syntax expects 1 argument") if $ast->size != 2;
     return $self->evaler()->bind( $ast->second() );
+}
+
+sub _impl_quote{
+    my ($self, $ast) = @_;
+    $ast->error("quote expects 1 argument") if $ast->size != 2;
+    return $ast->second();
 }
 
 # ( throw someexception "The message that goes with it")

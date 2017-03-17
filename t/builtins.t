@@ -368,7 +368,40 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
 }
 
 {
+    # Quoting
+    {
+        ok( my $res = $lisp->eval( q|(quote "marcel")|) );
+        is( $res->type() , "string" );
+        is( $res->value() , 'marcel');
+    }
+    {
+        ok( my $res = $lisp->eval( q|(quote marcel)|) );
+        is( $res->type() , "symbol" );
+        is( $res->value() , 'marcel');
+    }
+    {
+        ok( my $res = $lisp->eval( q|(quote ( apply + ( list 1 2 ) ))|) );
+        is( $res->type() , "list" );
+        is( $res->value()->[0]->type(), "symbol");
+        is( $res->value()->[0]->value(), "apply");
+        is( $res->value()->[1]->type(), "symbol");
+        is( $res->value()->[1]->value(), "+");
+        is( $res->value()->[2]->type(), "list");
+        is( $res->value()->[2]->value()->[0]->type(), "symbol");
+        is( $res->value()->[2]->value()->[0]->value(), "list");
+    }
+}
+
+{
     # Stringification
+    {
+        ok( my $res = $lisp->eval( q|( clj->string "marcel" )|) );
+        is( $res->value() , '"marcel"');
+    }
+    {
+        ok( my $res = $lisp->eval( q|( clj->string "marce\"l" )|) );
+        is( $res->value() , '"marce\"l"');
+    }
     {
         ok( my $res = $lisp->eval( q|( clj->string  [ 1 2 3 ] )|) );
         is( $res->value() , '[1 2 3]');

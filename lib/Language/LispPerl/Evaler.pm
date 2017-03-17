@@ -6,8 +6,6 @@ use warnings;
 use Carp;
 use Moo;
 
-use Coro;
-
 use File::ShareDir;
 use File::Spec;
 use File::Basename;
@@ -407,7 +405,7 @@ sub bind {
         return $ast
           if $self->word_is_reserved( $name );
         my $var = $self->var($name);
-        $ast->error("unbound symbol") if !defined $var;
+        $ast->error("unbound symbol '$var'") if !defined $var;
         return $var->value();
     }
     elsif ( $type eq "symbol"
@@ -615,8 +613,7 @@ sub _eval {
             return $self->_eval($res);
           }
         else {
-            $ast->error(
-                "expect a function or function name or index/key accessor");
+            $ast->error("expect a function or function name or index/key accessor");
         }
     }
     elsif ( $type eq "accessor" ) {
@@ -916,7 +913,7 @@ sub clj2perl {
     }
     else {
         $ast->error(
-            "unsupported type " . $type . " for clj2perl object conversion" );
+            "unsupported type '" . $type . "' for clj2perl object conversion" );
     }
 }
 

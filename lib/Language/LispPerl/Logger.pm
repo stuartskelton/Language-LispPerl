@@ -10,7 +10,7 @@ use Log::Any qw/$log/;
 sub error {
     my $msg = shift;
     $log->error("$msg");
-    die $msg;
+    confess( $msg );
 }
 
 sub info {

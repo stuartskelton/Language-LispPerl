@@ -82,6 +82,11 @@ sub to_string {
                 $s .= "]";
             }
         }
+        elsif( $type eq 'string' ){
+            $s = $obj->value();
+            $s =~ s/"/\\"/g;
+            $s = '"'.$s.'"';
+        }
         else {
             $s = $obj->value();
         }

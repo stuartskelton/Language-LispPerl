@@ -177,7 +177,7 @@ This assumes that your perl functions live in My::App::LispFunctions
 
 =head4 Macro charaters
 
- * Quote (') :
+ * Quote ('). :
 
 	'(foo bar)
 
@@ -368,6 +368,10 @@ This assumes that your perl functions live in My::App::LispFunctions
 
 	(trace-vars)
 
+ * quote : Returns the given list as is without evaluating it
+
+    (quote (+ 1 2 )) -> (+ 1 2)
+
 =head4 Core Functions (defined in core.clp)
 
  * use-lib : append path into Perl and Language::LispPerl files' searching paths.
@@ -426,7 +430,7 @@ Copyright 2013 Wei Hu. All Rights Reserved.
 
 This package as been released with the support of L<http://broadbean.com>
 
-=Head1 LICENSE
+=head1 LICENSE
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
