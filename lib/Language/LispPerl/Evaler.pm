@@ -1,10 +1,6 @@
 package Language::LispPerl::Evaler;
 
-use strict;
-use warnings;
-
-use Carp;
-use Moo;
+use Moose;
 
 use File::ShareDir;
 use File::Spec;
@@ -976,4 +972,5 @@ sub trace_vars {
     }
 }
 
+__PACKAGE__->meta->make_immutable();
 1;

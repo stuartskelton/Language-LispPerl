@@ -47,8 +47,17 @@ Language::LispPerl is a pure Perl lisp interpreter.
 It is a fork of L<CljPerl> that focuses on making embedding
 lisp code in your Perl written software straightforward.
 
-Language::ListPerl also bridges between lisp to perl. We can program in lisp and
-make use of CPAN or your application packages functions by implementing bindings.
+=head1 INCOMPATIBILITIES
+
+=over
+
+=item From version 0.004
+
+This uses L<Moose> instead of L<Moo>. This should not have any impact on your code,
+except if you have written your own role for 'Language::LispPerl::BuiltIns'. It will need to be a L<Moose::Role>
+instead of a L<Moo::Role>.
+
+=back
 
 =head2 BINDING Perl functions to Lisp
 

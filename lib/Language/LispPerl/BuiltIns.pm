@@ -1,6 +1,6 @@
 package Language::LispPerl::BuiltIns;
 
-use Moo;
+use Moose;
 
 use Carp;
 use Class::Load;
@@ -10,7 +10,9 @@ use Language::LispPerl::Printer;
 
 use Language::LispPerl::CoreBindings;
 
-use Role::Tiny qw//;
+
+use Moose::Util;
+#use Role::Tiny qw//;
 
 =head1 NAME
 
@@ -138,7 +140,8 @@ Usage (install Coroutine builtin functions):
 
 sub apply_role{
     my ($self, $role) = @_;
-    Role::Tiny->apply_roles_to_object( $self, $role );
+    Moose::Util::ensure_all_roles( $self, $role );
+    # Role::Tiny->apply_roles_to_object( $self, $role );
 }
 
 =head2 has_function
@@ -1057,4 +1060,5 @@ sub _impl_perl_clj{
     return $self->evaler()->perl2clj( $o->value() );
 }
 
+__PACKAGE__->meta()->make_immutable();
 1;

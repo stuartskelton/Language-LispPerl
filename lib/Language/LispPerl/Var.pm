@@ -1,13 +1,11 @@
 package Language::LispPerl::Var;
 
-use Moo;
-
-use strict;
-use warnings;
+use Moose;
 
 has 'name' => ( is => 'ro' , required => 1 );
 has 'value' => ( is => 'rw' );
 
+__PACKAGE__->meta()->make_immutable();
 1;
 
 =head1 NAME

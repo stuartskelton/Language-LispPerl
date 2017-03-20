@@ -1,6 +1,6 @@
 package Language::LispPerl::Role::BuiltIns::Coro;
 
-use Moo::Role;
+use Moose::Role;
 
 use Coro;
 
