@@ -311,9 +311,9 @@ sub read {
 }
 
 our $empty_list = Language::LispPerl::Seq->new("list");
-our $true       = Language::LispPerl::Atom->new( "bool", "true" );
-our $false      = Language::LispPerl::Atom->new( "bool", "false" );
-our $nil        = Language::LispPerl::Atom->new( "nil", "nil" );
+our $true       = Language::LispPerl::Atom->new({type =>  "bool", value => "true" });
+our $false      = Language::LispPerl::Atom->new({type =>  "bool", value => "false"});
+our $nil        = Language::LispPerl::Atom->new({type =>  "nil",  value => "nil"});
 
 sub true{ return $true; }
 sub false{ return $false; }
@@ -371,10 +371,10 @@ sub bind {
         return $nil;
     }
     elsif ( $type eq "accessor" ) {
-        return Language::LispPerl::Atom->new( "accessor", $self->bind($value) );
+        return Language::LispPerl::Atom->new({ type => "accessor", value => $self->bind($value) } );
     }
     elsif ( $type eq "sender" ) {
-        return Language::LispPerl::Atom->new( "sender", $self->bind($value) );
+        return Language::LispPerl::Atom->new({ type => "sender", value => $self->bind($value) });
     }
     elsif ( $type eq "syntaxquotation" or $type eq "quotation" ) {
         $self->{syntaxquotation_scope} += 1 if $type eq "syntaxquotation";
@@ -407,7 +407,7 @@ sub bind {
     elsif ( $type eq "symbol"
         and $self->{quotation_scope} > 0 )
     {
-        my $q = Language::LispPerl::Atom->new( "quotation", $value );
+        my $q = Language::LispPerl::Atom->new({ type => "quotation", value => $value });
         return $q;
     }
     elsif ( $class eq "Seq" ) {
@@ -614,7 +614,7 @@ sub _eval {
     }
     elsif ( $type eq "accessor" ) {
         my $av = $self->_eval($value);
-        my $a  = Language::LispPerl::Atom->new( "unknown", $av->value() );
+        my $a  = Language::LispPerl::Atom->new({ type => "unknown", value => $av->value() });
         my $at = $av->type();
         if ( $at eq "number" ) {
             $a->type("index accessor");
@@ -633,7 +633,7 @@ sub _eval {
         $ast->error( "sender expects a string or keyword but got " . $type )
           if $sn->type() ne "string"
           and $sn->type() ne "keyword";
-        my $s = Language::LispPerl::Atom->new( "symbol", $sn->value() );
+        my $s = Language::LispPerl::Atom->new({ type => "symbol", value => $sn->value() });
         return $self->bind($s);
     }
     elsif ( $type eq "symbol" ) {
@@ -646,7 +646,7 @@ sub _eval {
         return $self->bind($ast);
     }
     elsif ( $class eq "Seq" and $type eq "vector" ) {
-        my $v  = Language::LispPerl::Atom->new("vector");
+        my $v  = Language::LispPerl::Atom->new({ type => "vector" });
         my @vv = ();
         foreach my $i ( @{$value} ) {
             push @vv, $self->_eval($i);
@@ -655,7 +655,7 @@ sub _eval {
         return $v;
     }
     elsif ( $class eq "Seq" and ( $type eq "map" or $type eq "meta" ) ) {
-        my $m  = Language::LispPerl::Atom->new("map");
+        my $m  = Language::LispPerl::Atom->new({ type => "map" });
         my %mv = ();
         my $n  = scalar @{$value};
         $ast->error( $type . " should have even number of items" )
@@ -690,7 +690,7 @@ sub _eval {
           and $firsttype ne "string"
           and $firsttype ne "keyword";
         my @items = ();
-        my $xml = Language::LispPerl::Atom->new( "xml", \@items );
+        my $xml = Language::LispPerl::Atom->new({ type => "xml", value => \@items });
         $xml->{name} = $first->value();
         my @rest = $ast->slice( 1 .. $size - 1 );
         foreach my $i (@rest) {
@@ -918,7 +918,7 @@ sub wrap_perlobj {
     while ( ref($v) eq "REF" ) {
         $v = ${$v};
     }
-    return Language::LispPerl::Atom->new( "perlobject", $v );
+    return Language::LispPerl::Atom->new({ type => "perlobject", value => $v });
 }
 
 =head2 perl2clj
@@ -934,30 +934,30 @@ Usage:
 sub perl2clj {
     my ($self, $v) = @_;
     if ( !defined ref($v) or ref($v) eq "" ) {
-        return Language::LispPerl::Atom->new( "string", $v );
+        return Language::LispPerl::Atom->new({ type =>  "string", value => $v });
     }
     elsif ( ref($v) eq "SCALAR" ) {
-        return Language::LispPerl::Atom->new( "string", ${$v} );
+        return Language::LispPerl::Atom->new({ type =>  "string", value => ${$v} });
     }
     elsif ( ref($v) eq "HASH" ) {
         my %m = ();
         foreach my $k ( keys %{$v} ) {
             $m{$k} = $self->perl2clj( $v->{$k} );
         }
-        return Language::LispPerl::Atom->new( "map", \%m );
+        return Language::LispPerl::Atom->new({ type => "map", value => \%m });
     }
     elsif ( ref($v) eq "ARRAY" ) {
         my @a = ();
         foreach my $i ( @{$v} ) {
             push @a, $self->perl2clj($i);
         }
-        return Language::LispPerl::Atom->new( "vector", \@a );
+        return Language::LispPerl::Atom->new({ type =>  "vector", value => \@a });
     }
     elsif ( ref($v) eq "CODE" ) {
-        return Language::LispPerl::Atom->new( "perlfunction", $v );
+        return Language::LispPerl::Atom->new({ type => "perlfunction", value => $v });
     }
     else {
-        return Language::LispPerl::Atom->new( "perlobject", $v );
+        return Language::LispPerl::Atom->new({ type =>  "perlobject", value => $v });
 
         #$ast->error("expect a reference of scalar or hash or array");
     }

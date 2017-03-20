@@ -220,12 +220,12 @@ sub lex {
         elsif ( $c eq "'" ) {
             $self->consume(1);
             my $q = $self->lex();
-            return Language::LispPerl::Atom->new( "quotation", $q );
+            return Language::LispPerl::Atom->new({type =>  "quotation", value => $q });
         }
         elsif ( $c eq "`" ) {
             $self->consume(1);
             my $sq = $self->lex();
-            return Language::LispPerl::Atom->new( "syntaxquotation", $sq );
+            return Language::LispPerl::Atom->new({ type => "syntaxquotation", value => $sq });
         }
         elsif ( $c eq "~" ) {
             $self->consume(1);
@@ -262,11 +262,11 @@ sub dispatch {
     if ( defined $c ) {
         if ( $c eq ":" ) {
             $self->consume(1);
-            return Language::LispPerl::Atom->new( "accessor", $self->lex() );
+            return Language::LispPerl::Atom->new({ type => "accessor", value => $self->lex() });
         }
         elsif ( $c eq "!" ) {
             $self->consume(1);
-            return Language::LispPerl::Atom->new( "sender", $self->lex() );
+            return Language::LispPerl::Atom->new({ type => "sender", value => $self->lex() });
         }
         elsif ( $c eq '[' ) {
             return $self->seq( "xml", "[", "]" );
@@ -295,7 +295,7 @@ sub comment {
 sub string {
     my $self = shift;
     my $c    = undef;
-    my $s    = Language::LispPerl::Atom->new("string");
+    my $s    = Language::LispPerl::Atom->new({ type => "string" });
     $s->{pos} = {
         filename => $self->filename(),
         line     => $self->line(),
@@ -357,7 +357,7 @@ sub string {
 sub number {
     my $self = shift;
     my $c    = undef;
-    my $n    = Language::LispPerl::Atom->new("number");
+    my $n    = Language::LispPerl::Atom->new({ type => "number" });
     $n->{pos} = {
         filename => $self->filename(),
         line     => $self->line(),
@@ -399,7 +399,7 @@ sub number {
 sub symbol {
     my $self = shift;
     my $c    = undef;
-    my $sym  = Language::LispPerl::Atom->new("symbol");
+    my $sym  = Language::LispPerl::Atom->new({ type => "symbol" });
     $self->skip_blanks();
     $sym->{pos} = {
         filename => $self->filename(),

@@ -61,7 +61,7 @@ sub _impl_coro {
         $evaler->_eval($fc);
     };
     $coro->ready();
-    return Language::LispPerl::Atom->new( "coroutine", $coro );
+    return Language::LispPerl::Atom->new({type =>  "coroutine", value =>  $coro });
 }
 
 sub _impl_coro_suspend {
@@ -80,14 +80,14 @@ sub _impl_coro_sleep {
     $ast->error("coro-sleep expects 0 argument") if $ast->size != 1;
     $Coro::current->suspend();
     cede();
-    return Language::LispPerl::Atom->new( "coroutine", $Coro::current );
+    return Language::LispPerl::Atom->new({ type => "coroutine", value => $Coro::current });
 }
 
 sub _impl_coro_yield {
     my ( $self, $ast ) = @_;
     $ast->error("coro-yield expects 0 argument") if $ast->size() != 1;
     cede;
-    return Language::LispPerl::Atom->new( "coroutine", $Coro::current );
+    return Language::LispPerl::Atom->new({ type => "coroutine", value => $Coro::current });
 }
 
 sub _impl_coro_resume {
@@ -127,13 +127,13 @@ sub _impl_coro_join {
 sub _impl_coro_current {
     my ( $self, $ast ) = @_;
     $ast->error("coro-current expects 0 argument") if $ast->size() != 1;
-    return Language::LispPerl::Atom->new( "coroutine", $Coro::current );
+    return Language::LispPerl::Atom->new({ type => "coroutine", value => $Coro::current });
 }
 
 sub _impl_coro_main {
     my ( $self, $ast ) = @_;
     $ast->error("coro-main expects 0 argument") if $ast->size() != 1;
-    return Language::LispPerl::Atom->new( "coroutine", $Coro::main );
+    return Language::LispPerl::Atom->new({ type => "coroutine", value => $Coro::main });
 }
 
 1;

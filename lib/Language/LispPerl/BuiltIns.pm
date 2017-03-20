@@ -232,7 +232,7 @@ sub _impl_perlcall{
             and $ast->third()->type() eq "meta";
         $perl_func = \&{ $ns . "::" . $perl_func };
         my @rest = $ast->slice( ( defined $meta ? 3 : 2 ) .. $size - 1 );
-        unshift @rest, Language::LispPerl::Atom->new( "string", $ns )
+        unshift @rest, Language::LispPerl::Atom->new({ type =>  "string", value =>  $ns })
             if $blessed eq "->";
 
         return $self->evaler()->perlfunc_call( $perl_func, $meta, \@rest, $ast );
@@ -274,7 +274,7 @@ sub _impl_throw {
           . $msg->type() )
       if $msg->type() ne "string";
 
-    my $e = Language::LispPerl::Atom->new( "exception", $msg->value() );
+    my $e = Language::LispPerl::Atom->new({ type => "exception", value => $msg->value() });
     $e->{label}  = $label->value();
     $e->{caller} = $self->evaler()->copy_caller();
     $e->{pos} = $ast->{pos};
@@ -300,7 +300,7 @@ sub _impl_catch{
     if ($@) {
         my $e = $self->evaler()->exception();
         if ( !defined $e ) {
-            $e = Language::LispPerl::Atom->new( "exception", "unkown expection" );
+            $e = Language::LispPerl::Atom->new({ type => "exception", value => "unkown expection" } );
             $e->{label} = "undef";
             my @ec = ();
             $e->{caller} = \@ec;
@@ -328,7 +328,7 @@ sub _impl_exception_label{
     $ast->error( "exception-label expects an exception as argument but got "
                      . $e->type() )
         if $e->type() ne "exception";
-    return Language::LispPerl::Atom->new( "string", $e->{label} );
+    return Language::LispPerl::Atom->new({ type => "string", value => $e->{label} });
 }
 
 sub _impl_exception_message{
@@ -339,7 +339,7 @@ sub _impl_exception_message{
         "exception-message expects an exception as argument but got "
             . $e->type() )
         if $e->type() ne "exception";
-    return Language::LispPerl::Atom->new( "string", $e->value() );
+    return Language::LispPerl::Atom->new({ type =>  "string", value => $e->value() } );
 }
 
 sub _impl_def{
@@ -479,7 +479,7 @@ sub _impl_fn{
         $i++;
     }
 
-    my $nast = Language::LispPerl::Atom->new( "function", $ast );
+    my $nast = Language::LispPerl::Atom->new({ type => "function", value => $ast });
 
     $nast->{context} = $self->evaler()->copy_current_scope();
 
@@ -537,7 +537,7 @@ sub _impl_defmacro{
             }
         $i++;
     }
-    my $nast = Language::LispPerl::Atom->new( "macro", $ast );
+    my $nast = Language::LispPerl::Atom->new({ type =>  "macro", value => $ast });
 
     $nast->{context} = $self->evaler()->copy_current_scope();
 
@@ -548,7 +548,7 @@ sub _impl_defmacro{
 sub _impl_gen_sym{
     my ($self, $ast, $symbol) = @_;
     $ast->error("gen-sym expects 0/1 argument") if $ast->size > 2;
-    my $s = Language::LispPerl::Atom->new("symbol");
+    my $s = Language::LispPerl::Atom->new({ type => "symbol" });
     if ( $ast->size() == 2 ) {
         my $pre = $self->evaler()->_eval( $ast->second() );
         $ast->("gen-sym expects string as argument")
@@ -741,7 +741,7 @@ sub _impl_num_bin{
 
     my $vv1 = $v1->value();
     my $vv2 = $v2->value();
-    return Language::LispPerl::Atom->new( "number", $num_func->( $vv1 , $vv2 ) * 1 );
+    return Language::LispPerl::Atom->new({ type =>  "number", value => $num_func->( $vv1 , $vv2 ) * 1 });
 }
 my $STRING_FUNCTIONS = {
     'eq' => sub{ shift() eq shift(); },
@@ -846,7 +846,7 @@ sub _impl_length{
     my ($self, $ast, $symbol) = @_;
     $ast->error("length expects 1 argument") if $ast->size() != 2;
     my $v = $self->evaler()->_eval( $ast->second() );
-    my $r = Language::LispPerl::Atom->new( "number", 0 );
+    my $r = Language::LispPerl::Atom->new({ type =>  "number", value => 0 });
     if ( $v->type() eq "string" ) {
         $r->value( length( $v->value() ) );
         return $r;
@@ -874,7 +874,7 @@ sub _impl_reverse{
     my $v = $self->evaler()->_eval( $ast->second() );
 
     if ( $v->type() eq "string" ) {
-        return Language::LispPerl::Atom->new( "string", scalar( reverse( $v->value() ) ) );
+        return Language::LispPerl::Atom->new({ type =>  "string", value => scalar( reverse( $v->value() ) ) });
     }
 
     if ( $v->type() eq "list" ) {
@@ -885,7 +885,7 @@ sub _impl_reverse{
     }
 
     if ( $v->type() eq "vector" or $v->type() eq "xml" ) {
-        my $r = Language::LispPerl::Atom->new( $v->type() );
+        my $r = Language::LispPerl::Atom->new({ type =>  $v->type() });
         my @vv = reverse @{ $v->value() };
         $r->value( \@vv );
         return $r;
@@ -917,7 +917,7 @@ sub _impl_append{
 
     if ( $v1type eq "string" ) {
         # Concat strings.
-        return Language::LispPerl::Atom->new( "string", $v1->value() . $v2->value() );
+        return Language::LispPerl::Atom->new({ type =>  "string", value => $v1->value() . $v2->value() });
     }
 
     if ( $v1type eq "list" or $v1type eq "vector" ) {
@@ -928,13 +928,13 @@ sub _impl_append{
             return Language::LispPerl::Seq->new( "list", \@r );
         }
         else {
-            return Language::LispPerl::Atom->new( "vector", \@r );
+            return Language::LispPerl::Atom->new({ type => "vector", value => \@r });
         }
     }
 
     # Not a string, a list or a vector. Must be a map (cause we checked typing earlier)
     my %r = ( %{ $v1->value() }, %{ $v2->value() } );
-    return Language::LispPerl::Atom->new( "map", \%r );
+    return Language::LispPerl::Atom->new({ type => "map", value => \%r });
 }
 
 sub _impl_xml_name{
@@ -944,7 +944,7 @@ sub _impl_xml_name{
     my $v = $self->evaler()->_eval( $ast->second() );
     $ast->error( "xml-name expects xml as argument but got " . $v->type() )
         if $v->type() ne "xml";
-    return Language::LispPerl::Atom->new( "string", $v->{name} );
+    return Language::LispPerl::Atom->new({ type => "string", value => $v->{name} });
 }
 
 sub _impl_keys{
@@ -956,7 +956,7 @@ sub _impl_keys{
         if $v->type() ne "map";
     my @r = ();
     foreach my $k ( keys %{ $v->value() } ) {
-        push @r, Language::LispPerl::Atom->new( "keyword", $k );
+        push @r, Language::LispPerl::Atom->new({ type => "keyword", value => $k });
     }
     return Language::LispPerl::Seq->new( "list", \@r );
 }
@@ -987,14 +987,14 @@ sub _impl_object_id{
     my ($self, $ast) = @_;
     $ast->error("object-id expects 1 argument") if $ast->size != 2;
     my $v = $self->evaler()->_eval( $ast->second() );
-    return Language::LispPerl::Atom->new( "string", $v->object_id() );
+    return Language::LispPerl::Atom->new({ type =>  "string", value => $v->object_id() });
 }
 
 sub _impl_type{
     my ($self, $ast) = @_ ;
     $ast->error("type expects 1 argument") if $ast->size != 2;
     my $v = $self->evaler()->_eval( $ast->second() );
-    return Language::LispPerl::Atom->new( "string", $v->type() );
+    return Language::LispPerl::Atom->new({ type => "string", value => $v->type() } );
 }
 
 sub _impl_meta{
@@ -1030,7 +1030,7 @@ sub _impl_clj_string{
     my ($self, $ast) = @_;
     $ast->error("clj->string expects 1 argument") if $ast->size() != 2;
     my $v = $self->evaler()->_eval( $ast->second() );
-    return Language::LispPerl::Atom->new( "string", Language::LispPerl::Printer::to_string($v) );
+    return Language::LispPerl::Atom->new({ type => "string", value => Language::LispPerl::Printer::to_string($v) });
 }
 
 sub _impl_trace_vars{
@@ -1047,7 +1047,7 @@ sub _impl_perlobj_type{
     $ast->error( "perlobj-type expects perlobject as argument but got "
                      . $v->type() )
         if ( $v->type() ne "perlobject" );
-    return Language::LispPerl::Atom->new( "string", ref( $v->value() ) );
+    return Language::LispPerl::Atom->new({ type => "string", value => ref( $v->value() ) });
 }
 
 sub _impl_perl_clj{
