@@ -704,7 +704,7 @@ sub _eval {
               and $it ne "meta"
               and $it ne "list";
             if ( $it eq "meta" ) {
-                $xml->meta($iv);
+                $xml->meta_data($iv);
             }
             elsif ( $it eq "list" ) {
                 foreach my $i ( @{ $iv->value() } ) {

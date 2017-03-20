@@ -67,10 +67,10 @@ ok( my $lisp = Language::LispPerl::Evaler->new() );
     is( $lisp->var('foo')->name(), '#foo' );
     is( $lisp->var('foo')->value()->type(), 'string');
     is( $lisp->var('foo')->value()->value(), 'bar');
-    is( $lisp->var('foo')->value()->meta()->type() , "meta");
-    is( $lisp->var('foo')->value()->meta()->type() , "meta");
-    is( $lisp->var('foo')->value()->meta()->value()->{k}->type , "string");
-    is( $lisp->var('foo')->value()->meta()->value()->{k}->value , "v");
+    is( $lisp->var('foo')->value()->meta_data()->type() , "meta");
+    is( $lisp->var('foo')->value()->meta_data()->type() , "meta");
+    is( $lisp->var('foo')->value()->meta_data()->value()->{k}->type , "string");
+    is( $lisp->var('foo')->value()->meta_data()->value()->{k}->value , "v");
 
     ok( $lisp->eval(q|(set! foo "baz")|) );
     is( $lisp->var('foo')->name(), '#foo' );

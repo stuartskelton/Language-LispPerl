@@ -16,7 +16,7 @@ sub new {
         type      => $type,
         value     => $value,
         object_id => "atom" . ( $id++ ),
-        meta      => undef,
+        meta_data      => undef,
         pos       => {
             filename => "unknown",
             line     => 0,
@@ -48,14 +48,14 @@ sub object_id {
     return $self->{object_id};
 }
 
-sub meta {
+sub meta_data {
     my $self = shift;
     my $meta = shift;
     if ( defined $meta ) {
-        $self->{meta} = $meta;
+        $self->{meta_data} = $meta;
     }
     else {
-        return $self->{meta};
+        return $self->{meta_data};
     }
 }
 

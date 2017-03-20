@@ -54,8 +54,8 @@ sub to_string {
         elsif ( $type eq "xml" ) {
             $s = "<";
             $s .= $obj->{name};
-            if ( defined $obj->{meta} ) {
-                my %meta = %{ $obj->meta()->value() };
+            if ( defined $obj->{meta_data} ) {
+                my %meta = %{ $obj->meta_data()->value() };
                 foreach my $i ( keys %meta ) {
                     $s .= " " . $i . "=\"" . to_string( $meta{$i} ) . "\"";
                 }

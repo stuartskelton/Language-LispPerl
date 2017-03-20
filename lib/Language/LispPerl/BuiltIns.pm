@@ -384,7 +384,7 @@ sub _impl_def{
 
     $self->evaler()->new_var($name);
     my $value = $self->evaler()->_eval( $ast->fourth() );
-    $value->meta($meta);
+    $value->meta_data($meta);
     $self->evaler()->var($name)->value($value);
     return $value;
 }
@@ -1009,9 +1009,9 @@ sub _impl_meta{
             "meta expects 1 meta data as the second arguments but got "
                 . $vm->type() )
             if $vm->type() ne "meta";
-        $v->meta($vm);
+        $v->meta_data($vm);
     }
-    my $m = $v->meta();
+    my $m = $v->meta_data();
     $ast->error( "no meta data in " . Language::LispPerl::Printer::to_string($v) )
         if !defined $m;
     return $m;
