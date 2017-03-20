@@ -310,7 +310,7 @@ sub read {
     return $res;
 }
 
-our $empty_list = Language::LispPerl::Seq->new("list");
+our $empty_list = Language::LispPerl::Seq->new({ type => "list" });
 our $true       = Language::LispPerl::Atom->new({type =>  "bool", value => "true" });
 our $false      = Language::LispPerl::Atom->new({type =>  "bool", value => "false"});
 our $nil        = Language::LispPerl::Atom->new({type =>  "nil",  value => "nil"});
@@ -412,7 +412,7 @@ sub bind {
     }
     elsif ( $class eq "Seq" ) {
         return $empty_list if $type eq "list" and $ast->size() == 0;
-        my $list = Language::LispPerl::Seq->new("list");
+        my $list = Language::LispPerl::Seq->new({ type => "list" });
         $list->type($type);
         foreach my $i ( @{$value} ) {
             if ( $i->type() eq "dequotation" and $i->value() =~ /^@/ ) {
@@ -525,7 +525,7 @@ sub _eval {
                 if ( $name eq "&" ) {
                     $i++;
                     $name      = $fargsvalue->[$i]->value();
-                    $rest_args = Language::LispPerl::Seq->new("list");
+                    $rest_args = Language::LispPerl::Seq->new({ type => "list" });
                     $self->new_var( $name, $rest_args );
                 }
                 else {
@@ -580,7 +580,7 @@ sub _eval {
                 if ( $name eq "&" ) {
                     $i++;
                     $name      = $fargsvalue->[$i]->value();
-                    $rest_args = Language::LispPerl::Seq->new("list");
+                    $rest_args = Language::LispPerl::Seq->new({ type => "list" });
                     $self->new_var( $name, $rest_args );
                 }
                 else {
@@ -898,7 +898,7 @@ sub clj2perl {
     elsif ( $type eq "function" ) {
         my $f = sub {
             my @args = @_;
-            my $cljf = Language::LispPerl::Seq->new("list");
+            my $cljf = Language::LispPerl::Seq->new({ type => "list" });
             $cljf->append($ast);
             foreach my $arg (@args) {
                 $cljf->append( $self->perl2clj($arg) );

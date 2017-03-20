@@ -455,12 +455,12 @@ sub seq {
         $self->error( "expect " . $begin );
     }
     $self->skip_blanks();
-    my $seq = Language::LispPerl::Seq->new($type);
-    $seq->{pos} = {
+    my $seq = Language::LispPerl::Seq->new({ type => $type });
+    $seq->pos({
         filename => $self->filename(),
         line     => $self->line(),
         col      => $self->col()
-    };
+    });
     $self->{nest} += 1;
     do {
         $e = $self->lex();

@@ -312,7 +312,7 @@ sub _impl_catch{
         for ( ; $i > $saved_caller_depth ; $i-- ) {
             $self->evaler()->pop_caller();
         }
-        my $call_handler = Language::LispPerl::Seq->new("list");
+        my $call_handler = Language::LispPerl::Seq->new({ type => "list" });
         $call_handler->append($handler);
         $call_handler->append($e);
         $self->evaler()->clear_exception();
@@ -506,7 +506,7 @@ sub _impl_apply{
         if $l->type() ne "list";
 
     # Build a ( <function> ( args list  ) ) list.
-    my $n = Language::LispPerl::Seq->new("list");
+    my $n = Language::LispPerl::Seq->new({ type => "list" });
     $n->append($f);
     foreach my $i ( @{ $l->value() } ) {
         $n->append($i);
@@ -589,7 +589,7 @@ sub _impl_list{
     my ($self, $ast) = @_;
     return $self->evaler()->empty_list() if $ast->size == 1;
     my @vs = $ast->slice( 1 .. $ast->size - 1 );
-    my $r  = Language::LispPerl::Seq->new("list");
+    my $r  = Language::LispPerl::Seq->new({ type => "list" });
     foreach my $i (@vs) {
         $r->append( $self->evaler()->_eval($i) );
     }
@@ -614,7 +614,7 @@ sub _impl_cdr{
         if $v->type() ne "list";
     return $self->evaler()->empty_list() if ( $v->size() == 0 );
     my @vs = $v->slice( 1 .. $v->size() - 1 );
-    my $r  = Language::LispPerl::Seq->new("list");
+    my $r  = Language::LispPerl::Seq->new({ type => "list"});
     $r->value( \@vs );
     return $r;
 }
@@ -630,7 +630,7 @@ sub _impl_cons{
     my @vs = ();
     @vs = $rvs->slice( 0 .. $rvs->size() - 1 ) if $rvs->size() > 0;
     unshift @vs, $fv;
-    my $r = Language::LispPerl::Seq->new("list");
+    my $r = Language::LispPerl::Seq->new({ type => "list" });
     $r->value( \@vs );
     return $r;
 }
@@ -878,7 +878,7 @@ sub _impl_reverse{
     }
 
     if ( $v->type() eq "list" ) {
-        my $r = Language::LispPerl::Seq->new("list");
+        my $r = Language::LispPerl::Seq->new({ type => "list" });
         my @vv = reverse @{ $v->value() };
         $r->value( \@vv );
         return $r;
@@ -925,7 +925,7 @@ sub _impl_append{
         push @r, @{ $v1->value() };
         push @r, @{ $v2->value() };
         if ( $v1type eq "list" ) {
-            return Language::LispPerl::Seq->new( "list", \@r );
+            return Language::LispPerl::Seq->new({ type => "list", value => \@r });
         }
         else {
             return Language::LispPerl::Atom->new({ type => "vector", value => \@r });
@@ -958,7 +958,7 @@ sub _impl_keys{
     foreach my $k ( keys %{ $v->value() } ) {
         push @r, Language::LispPerl::Atom->new({ type => "keyword", value => $k });
     }
-    return Language::LispPerl::Seq->new( "list", \@r );
+    return Language::LispPerl::Seq->new({ type => "list", value => \@r });
 }
 
 sub _impl_namespace_begin{

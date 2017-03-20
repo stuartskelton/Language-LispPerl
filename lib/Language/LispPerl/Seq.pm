@@ -1,78 +1,24 @@
 package Language::LispPerl::Seq;
 
-use strict;
-use warnings;
+use Moose;
 
 use Language::LispPerl::Logger;
 use Language::LispPerl::Printer;
 
 our $id      = 0;
 
-sub new {
-    my $class = shift;
-    my $type  = shift;
-    $type = "list" if !defined $type;
-    my $value = shift;
-    my @seq   = ();
-    $value = \@seq if !defined $value;
-    my $self = {
-        class     => "Seq",
-        type      => $type,
-        value     => $value,
-        object_id => "seq" . ( $id++ ),
-        meta_data      => undef,
-        pos       => {
-            filename => "unknown",
-            line     => 0,
-            col      => 0
-        }
-    };
-    bless $self;
-    return $self;
-}
-
-sub class {
-    my $self = shift;
-    return $self->{class};
-}
-
-sub type {
-    my $self = shift;
-    my $type = shift;
-    if ( defined $type ) {
-        $self->{type} = $type;
-    }
-    else {
-        return $self->{type};
-    }
-}
-
-sub object_id {
-    my $self = shift;
-    return $self->{object_id};
-}
-
-sub meta_data {
-    my $self = shift;
-    my $meta = shift;
-    if ( defined $meta ) {
-        $self->{meta_data} = $meta;
-    }
-    else {
-        return $self->{meta_data};
-    }
-}
-
-sub value {
-    my $self  = shift;
-    my $value = shift;
-    if ( defined $value ) {
-        $self->{value} = $value;
-    }
-    else {
-        return $self->{value};
-    }
-}
+has 'class' => ( is => 'ro', isa => 'Str', default => 'Seq' );
+has 'type' => ( is => 'rw', isa => 'Str', default => 'list' );
+has 'value' => ( is => 'rw', default => sub{ [] } );
+has 'object_id' => ( is => 'ro', isa => 'Str', default => sub{ 'seq'.( $id++ ); } );
+has 'meta_data' => ( is => 'rw' );
+has 'pos' => ( is => 'rw', isa => 'HashRef', default => sub{
+                   return {
+                       filename => "unknown",
+                       line     => 0,
+                       col      => 0
+                   }
+               });
 
 sub prepend {
     my $self = shift;
@@ -151,4 +97,6 @@ sub error {
     Language::LispPerl::Logger::error($msg);
 }
 
+
+__PACKAGE__->meta()->make_immutable();
 1;

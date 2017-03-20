@@ -56,7 +56,7 @@ sub _impl_coro {
       if $b->type() ne "function";
     my $coro = new Coro sub {
         my $evaler = $self->evaler()->new_instance();
-        my $fc     = Language::LispPerl::Seq->new("list");
+        my $fc     = Language::LispPerl::Seq->new({ type => "list" });
         $fc->append($b);
         $evaler->_eval($fc);
     };
