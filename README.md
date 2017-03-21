@@ -30,8 +30,13 @@ Language::LispPerl is a pure Perl lisp interpreter.
 It is a fork of [CljPerl](https://metacpan.org/pod/CljPerl) that focuses on making embedding
 lisp code in your Perl written software straightforward.
 
-Language::ListPerl also bridges between lisp to perl. We can program in lisp and
-make use of CPAN or your application packages functions by implementing bindings.
+# INCOMPATIBILITIES
+
+- From version 0.004
+
+    This uses [Moose](https://metacpan.org/pod/Moose) instead of [Moo](https://metacpan.org/pod/Moo). This should not have any impact on your code,
+    except if you have written your own role for 'Language::LispPerl::BuiltIns'. It will need to be a [Moose::Role](https://metacpan.org/pod/Moose::Role)
+    instead of a [Moo::Role](https://metacpan.org/pod/Moo::Role).
 
 ## BINDING Perl functions to Lisp
 

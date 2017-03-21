@@ -141,7 +141,6 @@ Usage (install Coroutine builtin functions):
 sub apply_role{
     my ($self, $role) = @_;
     Moose::Util::ensure_all_roles( $self, $role );
-    # Role::Tiny->apply_roles_to_object( $self, $role );
 }
 
 =head2 has_function

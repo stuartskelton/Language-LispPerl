@@ -3,6 +3,39 @@ package Language::LispPerl::Printer;
 use strict;
 use warnings;
 
+=head2 to_perl
+
+Pure function. Takes something Language::LispPerl related and
+turns it into a pure perl data structure.
+
+=cut
+
+sub to_perl{
+    my $thing = shift;
+
+    # Object case. Easy.
+    if( Scalar::Util::blessed( $thing ) ){
+        return $thing->to_hash();
+    }
+
+    my $ref_thing = ref($thing);
+    # Pure scalar thing. Easy.
+    unless( $ref_thing ){
+        return $thing;
+    }
+    if( $ref_thing eq 'ARRAY' ){
+        return [ map{ to_perl( $_ ) } @{$thing} ];
+    }
+    if( $ref_thing eq 'HASH' ){
+        my $hash = {};
+        while( my ( $k , $v ) = each %$thing ){
+            $hash->{$k} = to_perl( $v );
+        }
+        return $hash;
+    }
+    confess("Cannot turn $thing into pure perl structure");
+}
+
 
 sub to_string {
     my $obj = shift;
