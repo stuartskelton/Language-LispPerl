@@ -20,6 +20,27 @@ has 'pos' => ( is => 'rw', isa => 'HashRef', default => sub{
                    }
                });
 
+sub to_hash{
+    my ($self) = @_;
+    return {
+        class => $self->class(),
+        type => $self->type(),
+        value => Language::LispPerl::Printer::to_perl( $self->value() ),
+        object_id => $self->object_id(),
+        meta_data => Language::LispPerl::Printer::to_perl( $self->meta_data() ),
+        pos => Language::LispPerl::Printer::to_perl( $self->pos() ),
+        __class => $self->blessed(),
+    };
+}
+
+sub from_hash{
+    my ($class, $hash) = @_;
+    return $class->new({
+        map{ $_ => Language::LispPerl::Reader::from_perl( $hash->{$_} ) } keys %$hash
+    });
+}
+
+
 sub prepend {
     my $self = shift;
     my $v    = shift;

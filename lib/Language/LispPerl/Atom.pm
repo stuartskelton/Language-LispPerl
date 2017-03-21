@@ -5,7 +5,7 @@ use Moose;
 use Language::LispPerl::Printer;
 use Language::LispPerl::Logger;
 
-our $id      = 0;
+our $id = 0;
 
 has 'class' => ( is => 'ro', isa => 'Str', default => 'Atom' );
 has 'type' => ( is => 'rw', isa => 'Str', required => 1 );
@@ -20,6 +20,26 @@ has 'pos' => ( is => 'ro', default => sub{
                        col      => 0
                    };
                });
+
+sub to_hash{
+    my ($self) = @_;
+    return {
+        class => $self->class(),
+        type => $self->type(),
+        value => Language::LispPerl::Printer::to_perl( $self->value() ),
+        object_id => $self->object_id(),
+        meta_data => Language::LispPerl::Printer::to_perl( $self->meta_data() ),
+        pos => Language::LispPerl::Printer::to_perl( $self->pos() ),
+        __class => $self->blessed(),
+    };
+}
+
+sub from_hash{
+    my ($class, $hash) = @_;
+    return $class->new({
+        map{ $_ => Language::LispPerl::Reader::from_perl( $hash->{$_} ) } keys %$hash
+    });
+}
 
 
 sub show {

@@ -34,16 +34,39 @@ has 'loaded_files' => ( is => 'ro', default => sub{ {}; } );
 has 'file_stack' => ( is => 'ro',  default => sub{ []; } );
 has 'caller' => ( is => 'ro' , default => sub{ []; } );
 
-has 'quotation_scope' => ( is => 'ro', default => sub{ 0; });
-has 'syntaxquotation_scope' => ( is => 'ro', default => sub{ 0; });
+has 'quotation_scope' => ( is => 'ro', default => 0 );
+has 'syntaxquotation_scope' => ( is => 'ro', default => 0 );
 
 has 'exception' => ( is => 'rw' );
 
 # The container for the builtin functions.
-has 'builtins' => ( is => 'ro', default => sub{
-                        my ($self) = @_;
-                        return Language::LispPerl::BuiltIns->new({ evaler => $self });
-                    });
+has 'builtins' => ( is => 'ro', lazy_build => 1 );
+
+sub _build_builtins{
+    my ($self) = @_;
+    return Language::LispPerl::BuiltIns->new({ evaler => $self });
+}
+
+sub to_hash{
+    my ($self) = @_;
+    return {
+        'scopes' => Language::LispPerl::Printer::to_perl( $self->scopes() ),
+        'loaded_files' => Language::LispPerl::Printer::to_perl( $self->loaded_files() ),
+        'file_stack' => Language::LispPerl::Printer::to_perl( $self->file_stack() ),
+        'caller' => Language::LispPerl::Printer::to_perl( $self->caller() ),
+        'quotation_scope' => Language::LispPerl::Printer::to_perl( $self->quotation_scope() ),
+        'syntaxquotation_scope' => Language::LispPerl::Printer::to_perl( $self->syntaxquotation_scope() ),
+        'exception' => Language::LispPerl::Printer::to_perl( $self->exception() ),
+        __class => $self->blessed(),
+    };
+}
+
+sub from_hash{
+    my ($class, $hash) = @_;
+    return $class->new({
+        map { $_ => Language::LispPerl::Reader::from_perl( $hash->{$_} ) } keys %$hash
+    });
+}
 
 =head2 new_instance
 

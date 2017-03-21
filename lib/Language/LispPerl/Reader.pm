@@ -6,6 +6,29 @@ use Language::LispPerl::Seq;
 use Language::LispPerl::Atom;
 use Language::LispPerl::Logger;
 
+use Carp;
+use Class::Load;
+
+sub from_perl{
+    my ($thing) = @_;
+    my $refthing = ref($thing);
+    unless( $refthing ){
+        return $thing;
+    }
+    if( $refthing eq 'HASH' ){
+        if( my $class = $thing->{__class} ){
+            Class::Load::load_class( $class );
+            return $class->from_hash( $thing );
+        }
+        return {
+            map{ $_ => from_perl( $thing->{$_} ) } keys %$thing
+        };
+    }
+    if( $refthing eq 'ARRAY' ){
+        return [ map{ from_perl( $_ ) } @$thing ];
+    }
+    confess("No idea how to turn $thing into objects");
+}
 
 sub new {
     my $class = shift;
