@@ -5,8 +5,6 @@ requires 'File::ShareDir';
 requires 'Coro', '>= 6.29';
 requires 'Log::Any';
 requires 'Moose' , '>=  2.1205';
-requires 'MooseX::Storage', '>= 0.52';
-requires 'Role::Tiny', '>=  2.000001';
 
 test_requires 'File::Share';
 test_requires 'File::Temp';
