@@ -479,8 +479,8 @@ sub _impl_fn{
     }
 
     my $nast = Language::LispPerl::Atom->new({ type => "function", value => $ast });
-
-    $nast->{context} = $self->evaler()->copy_current_scope();
+    my $current_scope = $self->evaler()->copy_current_scope();
+    $nast->context( $current_scope );
 
     return $nast;
 }

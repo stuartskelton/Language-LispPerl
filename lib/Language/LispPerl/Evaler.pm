@@ -90,7 +90,7 @@ sub clear_exception{
 
 sub push_scope {
     my $self    = shift;
-    my $context = shift;
+    my $context = shift // confess("Cannot push undef context");
     my %c       = %{$context};
     my @ns      = @{ $c{$namespace_key} };
     $c{$namespace_key} = \@ns;
@@ -527,7 +527,11 @@ sub _eval {
             }
         }
         elsif ( $ftype eq "function" ) {
-            my $scope  = $f->{context};
+            # Fallback to current scope if the function
+            # definition didnt shallow copy its current scope at the time of definition.
+            # This is the case when the evaler is persisted and then defrosted.
+            my $scope  = $f->context() // $self->copy_current_scope();
+
             my $fn     = $fvalue;
             my $fargs  = $fn->second();
             my @rargs  = $ast->slice( 1 .. $size - 1 );

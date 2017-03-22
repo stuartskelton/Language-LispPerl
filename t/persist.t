@@ -23,6 +23,12 @@ use JSON;
     is_deeply( $packed, $other_lisp->to_hash() );
 }
 
+{
+    package PerlBindings;
+    sub about{ return "This is bound"; }
+}
+
+
 # Define some stuff
 {
     my $lisp = Language::LispPerl::Evaler->new();
@@ -30,9 +36,15 @@ use JSON;
   `(def ~name
      (fn ~args ~@body)))
 
-(defn square [a b] ( * a b ))
+(defn square [a] ( * a a ))
 
-(def somename 1)
+(def somename 5)
+
+(defn somename-square [] ( let [somename 6] ( square somename ) ) )
+
+(. require "PerlBindings" )
+(defn perl-about []
+  (.PerlBindings about ^{:return "scalar"}))
 
 |);
     {
@@ -63,6 +75,24 @@ use JSON;
     {
         my $res = $other_lisp->eval(q|( type somename )|);
         is( $res->value(),  'number' );
+    }
+    {
+        my $res = $other_lisp->eval(q|( type perl-about)|);
+        is( $res->value(),  'function' );
+    }
+    # Now it is time to use the persisted functions.
+    {
+        my $res = $other_lisp->eval(q|( square 3 )|);
+        is( $res->value(), 9);
+    }
+    {
+        my $res = $other_lisp->eval(q|( somename-square )|);
+        is( $res->value(), 36);
+    }
+    # Now it is time to use the persisted functions.
+    {
+        my $res = $other_lisp->eval(q|( perl-about )|);
+        is( $res->value(), "This is bound");
     }
 }
 

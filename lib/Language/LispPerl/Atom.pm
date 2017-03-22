@@ -13,6 +13,8 @@ has 'type' => ( is => 'rw', isa => 'Str', required => 1 );
 has 'value' => ( is => 'rw', default => '' );
 has 'object_id' => ( is => 'ro', isa => 'Str', default => sub{ 'atom'.( $id++ ); } );
 has 'meta_data' => ( is => 'rw' );
+# An atom that is a function can have a context.
+has 'context' => ( is => 'rw' );
 has 'pos' => ( is => 'ro', default => sub{
                    return {
                        filename => "unknown",
@@ -30,6 +32,8 @@ sub to_hash{
         object_id => $self->object_id(),
         meta_data => Language::LispPerl::Printer::to_perl( $self->meta_data() ),
         pos => Language::LispPerl::Printer::to_perl( $self->pos() ),
+        # Note that we dont persist the function contexts
+        # This forbids the evaluation of closures in deflated evalers.
         __class => $self->blessed(),
     };
 }
