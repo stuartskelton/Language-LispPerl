@@ -424,7 +424,7 @@ sub bind {
         return $ast
           if $self->word_is_reserved( $name );
         my $var = $self->var($name);
-        $ast->error("unbound symbol '$var'") if !defined $var;
+        $ast->error("unbound symbol '$name'") if !defined $var;
         return $var->value();
     }
     elsif ( $type eq "symbol"
