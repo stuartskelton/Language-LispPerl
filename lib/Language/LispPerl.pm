@@ -419,6 +419,26 @@ This assumes that your perl functions live in My::App::LispFunctions
 
 	(file#>> fh "foo")
 
+=head1 PERSISTENCE
+
+Since V0.007, you have the possibility to 'freeze' the evaler into a pure perl data structure,
+and defrost it later on to execute some code in the same evaler state.
+
+Usage:
+
+  my $lisp = Language::LispPerl::Evaler->new();
+  # Load core functions and macros
+  $lisp->load("core.clp");
+  $lisp->eval(q|(defn square [a] ( * a a ))|);
+
+  my $perl_hash = $lisp->to_hash();
+  # Store this pure perl hash somewhere in your favourite format.
+  # Hint: compress its representation as it can be quite big.
+
+  # Then later on:
+  my $new_lisp = Language::LispPerl::Evaler->from_hash( $perl_hash );
+  my $res = $new_lisp->eval(q|(square 2 )|);
+
 =head1 SEE ALSO
 
 L<CljPerl>
@@ -431,7 +451,7 @@ Original author: Wei Hu, E<lt>huwei04@hotmail.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright 2016 Jerome Eteve. All rights Reserved.
+Copyright 2016-2017 Jerome Eteve. All rights Reserved.
 
 Copyright 2013 Wei Hu. All Rights Reserved.
 
