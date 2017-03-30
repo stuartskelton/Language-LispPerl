@@ -46,6 +46,9 @@ use JSON;
 (defn perl-about []
   (.PerlBindings about ^{:return "scalar"}))
 
+(defmacro sum-of-numbers []
+  `( + 10 11 ))
+
 |);
     {
         my $res = $lisp->eval(q|( type defn )|);
@@ -58,6 +61,10 @@ use JSON;
     {
         my $res = $lisp->eval(q|( type somename )|);
         is( $res->value(),  'number' );
+    }
+    {
+        my $res = $lisp->eval(q|( type sum-of-numbers )|);
+        is( $res->value(),  'macro' );
     }
 
     my $pack = $lisp->to_hash();
@@ -80,6 +87,11 @@ use JSON;
         my $res = $other_lisp->eval(q|( type perl-about)|);
         is( $res->value(),  'function' );
     }
+    {
+        my $res = $other_lisp->eval(q|( type sum-of-numbers )|);
+        is( $res->value(),  'macro' );
+    }
+
     # Now it is time to use the persisted functions.
     {
         my $res = $other_lisp->eval(q|( square 3 )|);
@@ -89,11 +101,16 @@ use JSON;
         my $res = $other_lisp->eval(q|( somename-square )|);
         is( $res->value(), 36);
     }
-    # Now it is time to use the persisted functions.
     {
         my $res = $other_lisp->eval(q|( perl-about )|);
         is( $res->value(), "This is bound");
     }
+    # And the persisted macros
+    {
+        my $res = $other_lisp->eval(q|( sum-of-numbers )|);
+        is( $res->value(), 21);
+    }
+
 }
 
 done_testing();

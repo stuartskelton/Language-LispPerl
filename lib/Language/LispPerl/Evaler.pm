@@ -590,7 +590,7 @@ sub _eval {
             return $self->perlfunc_call( $perl_func, $meta, \@args, $ast );
         }
         elsif ( $ftype eq "macro" ) {
-            my $scope = $f->{context};
+            my $scope  = $f->context() // $self->copy_current_scope();
             my $fn    = $fvalue;
             my $fargs = $fn->third();
             my @rargs = $ast->slice( 1 .. $ast->size() - 1 );
