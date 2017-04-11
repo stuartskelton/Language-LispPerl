@@ -5,7 +5,7 @@ use warnings;
 
 =head1 NAME
 
-Language::LispPerl::CoreBindings - Perl functions binded from core.clp
+Language::LispPerl::CoreBindings - Perl functions binded from core.clp or file.clp
 
 =head1 SYNOPSIS
 
