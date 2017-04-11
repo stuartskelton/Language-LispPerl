@@ -1,7 +1,7 @@
 (require file)
 
-(file#open ">/tmp/t.txt" (fn [f]
+(file#open ( append  ">" tempfile )  (fn [f]
   (file#>> f "aaa")))
 
-(file#open "</tmp/t.txt" (fn [f]
+(file#open ( append  "<" tempfile )  (fn [f]
   (println (perl->clj (file#<< f)))))
