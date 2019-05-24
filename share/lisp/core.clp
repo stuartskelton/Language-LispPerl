@@ -18,19 +18,19 @@
 
 ; Do not use recursive function,
 ; since we do not support optimazation of tail call.
-(defn reduce [afn init alist]
+(defn reduce [areducefn init alist]
   (def res init)
   (def i 0)
   (def l (length alist))
   (while (< i l)
-    (set! res (afn (#:i alist) res))
+    (set! res (areducefn (#:i alist) res))
     (set! i (+ i 1)))
   res)
 
-(defn map [afn alist]
+(defn map [amapfn alist]
   (reduce (fn [a i]
-    (append i 
-      (list (afn a))))
+    (append i
+      (list (amapfn a))))
     ()
     alist))
 
